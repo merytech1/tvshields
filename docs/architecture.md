@@ -67,6 +67,36 @@ out to be unworkable. C is discarded on cost.
         │ engine.dat (serialized), settings (DataStore)
 ```
 
+### 3.1 Architectural pattern
+
+A **modular monolith**: one APK, one process, no backend. The only network dependencies are
+static files (filter lists, `resources.json`) and the user's own browsing.
+
+Inside the app, **MVVM with layers**, as recommended by Google for Android:
+
+```
+UI          Compose for TV screens. Render state, forward user events.
+  ↕ observes StateFlow
+ViewModel   Screen state and user actions. No Android View or WebView references.
+  ↕
+Domain      ShieldsManager, SearchResolver, RequestTypeGuesser: project rules, plain Kotlin.
+  ↕
+Data        FilterListRepository, SettingsRepository (DataStore), AdblockEngine (JNI).
+```
+
+- **Single Activity.** Screens are composables with Navigation Compose, not separate Activities.
+- **Packages by feature** (`browser/`, `shields/`, `lists/`, `search/`, `settings/`), each with its
+  own layers inside.
+- **The native engine sits behind a Kotlin interface** (`AdblockEngine`). `NativeAdblockEngine`
+  is the JNI implementation; tests use a fake, so domain logic is testable without the `.so`.
+- **Exception: the WebView hot path.** `shouldInterceptRequest` calls `ShieldsManager` directly,
+  without going through a ViewModel, because it runs on background threads for every request.
+  ViewModels only receive aggregated results (e.g. the blocked counter).
+- **Dependency injection by hand** (an `AppContainer` created in `Application`). No Hilt/Dagger,
+  to keep the APK and the build light (T1, T7).
+- **No Docker.** The app runs on Android, and the build uses the local toolchain (roadmap 0.4)
+  or GitHub Actions runners.
+
 ## 4. Repository layout
 
 ```
@@ -95,7 +125,8 @@ tvshields/
 │           ├── browser/
 │           ├── shields/
 │           ├── lists/
-│           └── search/
+│           ├── search/
+│           └── settings/
 ├── settings.gradle.kts
 └── .github/workflows/         # CI: Rust + APK build, tests, size check
 ```
@@ -278,4 +309,26 @@ security patch. All performance measurements (T7) are taken on it.
 
 - Internal class and package names, as long as they follow the layout in §4.
 - The cursor acceleration curve and the exact debounce timings.
-- Visual UI design. Constraint: readable from 3 m away (text ≥ 18 sp) and no Brave branding.
+- Implementation details of the UI, once the mockups (§12) are approved.
+
+## 12. UI design
+
+The UI is **our own**: the WebView only renders web pages, and everything around it (address bar,
+Shields panel, settings, cursor) is designed and built by the project. Brave's UI is not copied
+(P7) and Brave has no TV UI anyway; its *organization* (a shield icon next to the address bar that
+opens a panel with the counter and the toggle) is a reference.
+
+**Process** (roadmap 2.0):
+1. Mockups are made in **Claude Design** before any UI code. **shadcn/ui** may be used there as
+   the component base for the mockups.
+2. The approved mockups and the resulting design tokens (colors, type scale, spacing, focus
+   style) are recorded in `docs/ui-design.md`.
+3. The UI is then implemented in **Compose for TV** following those mockups. shadcn/ui is a web
+   (React) library: it is a visual reference only and never ships in the APK.
+
+**TV constraints the mockups must meet:**
+- Readable from 3 m away: text ≥ 18 sp.
+- An always-visible focus indicator; every element reachable with the arrows.
+- ~5 % overscan margin at the edges.
+- 1920×1080 layout (the TV renders the UI at 1080p and scales it to 4K).
+- No Brave branding (P7).
