@@ -17,7 +17,7 @@ impl From<jni::errors::Error> for BridgeError {
 }
 
 /// Kotlin class that declares the `external` functions. Change it here if the package changes.
-pub const NATIVE_CLASS: &JNIStr = jni_str!("io/github/mmanosaslva/tvshields/engine/NativeEngine");
+pub const NATIVE_CLASS: &JNIStr = jni_str!("io/github/merytech1/tvshields/engine/NativeEngine");
 
 fn to_strings(env: &mut Env, array: &JObjectArray<JString>) -> Result<Vec<String>, BridgeError> {
     let len = array.len(env)?;
