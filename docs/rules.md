@@ -25,7 +25,7 @@ anything is implemented.
 |---|---|
 | T1 | The APK weighs **at most 100 MB** (hard limit). Target: ≤ 25 MB. |
 | T2 | `minSdk 24` (Android 7.0). |
-| T3 | Built for **`armeabi-v7a` and `arm64-v8a`**. Many TVs have a 64-bit CPU running 32-bit Android. `x86_64` is for the emulator only, never in the release APK. |
+| T3 | Built for **`armeabi-v7a` and `arm64-v8a`** only. Many TVs have a 64-bit CPU running 32-bit Android (the reference TV among them). `x86_64` is not built: there is no emulator in this project, testing happens on the real TV. |
 | T4 | Web engine: **Android System WebView**. Neither Chromium nor GeckoView is bundled. |
 | T5 | Blocking engine: **unmodified `adblock-rust`**, as a crates.io dependency. If it is ever modified, those changes are published (MPL-2.0 requirement). |
 | T6 | **Filter lists are not bundled in the APK**: they are downloaded from their original sources and update automatically. |
@@ -61,7 +61,7 @@ anything is implemented.
 |---|---|---|---|
 | C1 | T6 × P2 | If lists are downloaded rather than bundled, Shields have no rules on a **first launch without internet**. | The first launch downloads the lists before opening the first page, behind a progress screen. Without a connection, a "Shields have no lists" warning is shown, and pages do not load until lists are available or the user chooses to continue unprotected. |
 | C2 | T7 × WebView | `adblock-rust` is faster with the `single-thread` feature, but `shouldInterceptRequest` is called **from several threads**. | Built **without** `single-thread` (the engine is `Send + Sync`), and a single instance is shared across threads. If phase 8 measurements show contention, a reader pool is evaluated. |
-| C3 | T1 × T3 | Two ABIs mean two engine `.so` files inside the APK. | Estimated at 3–6 MB per ABI, far below 100 MB. Releases also publish one APK per ABI alongside the universal one. Measured on every release (phase 9). |
+| C3 | T1 × T3 | Two ABIs mean two engine `.so` files inside the APK. | Measured at 1.9 MB (`armeabi-v7a`) and 2.8 MB (`arm64-v8a`) on 2026-11-08, far below 100 MB. Releases also publish one APK per ABI alongside the universal one. Measured on every release (phase 9). |
 | C4 | T2 × T10 | With `minSdk 24`, the WebView may be old and lack `DOCUMENT_START_SCRIPT` or `WEB_MESSAGE_LISTENER`. | Detected at runtime. Without `DOCUMENT_START_SCRIPT`, injection happens in `onPageStarted` (less reliable for 1.3), and Settings suggests updating "Android System WebView". |
 | C5 | P3 × T5 | The engine knows nothing about "sites with Shields off". | The per-site toggle is resolved in Kotlin **before** calling the engine; the engine is not modified. |
 | C6 | T9 × T6 | Updating lists implies automatic requests. | Explicitly allowed by T9: only to the URLs in the list catalog, and they are shown on the "About" screen. Nothing else leaves without a user action. |
@@ -78,3 +78,4 @@ anything is implemented.
 | 2026-11-07 | License: **MPL-2.0**, the same as Brave's components (`LICENSE`). |
 | 2026-11-07 | App display name: **tvshields** (P7). |
 | 2026-11-07 | Search: **Brave Search** by default; DuckDuckGo, Startpage and Google selectable in Settings (P5). |
+| 2026-11-08 | `x86_64` dropped (T3): no emulator is used, and the reference TV only runs `armeabi-v7a`. |

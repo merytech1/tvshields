@@ -5,7 +5,7 @@
 | Piece | What it does | Link |
 |---|---|---|
 | Android NDK | Compilers and libraries for native code on Android | https://developer.android.com/ndk |
-| Rust targets | `armv7-linux-androideabi`, `aarch64-linux-android`, `x86_64-linux-android` | `rustup target add …` |
+| Rust targets | `armv7-linux-androideabi`, `aarch64-linux-android` | `rustup target add …` |
 | `cargo-ndk` | Builds the crate with the NDK and places the `.so` files in `jniLibs/<abi>/` | https://github.com/bbqsrc/cargo-ndk |
 | `jni` crate | Write `extern "system"` functions that Kotlin calls via `external fun` | https://crates.io/crates/jni |
 
@@ -15,13 +15,16 @@
 |---|---|---|
 | `armeabi-v7a` | `armv7-linux-androideabi` | 32-bit TVs (very common, including the reference TV, which only supports this ABI) |
 | `arm64-v8a` | `aarch64-linux-android` | 64-bit TVs and boxes |
-| `x86_64` | `x86_64-linux-android` | Emulator only, never in release (rules T3) |
 
 ## Build
 
 ```bash
-cargo ndk -t armeabi-v7a -t arm64-v8a -t x86_64 -o ../app/src/main/jniLibs build --release
+engine/build-android.sh
 ```
+
+It runs `cargo ndk -t armeabi-v7a -t arm64-v8a --platform 24 -o ../app/src/main/jniLibs build --release`
+(`--platform 24` = `minSdk`, rules T2) and prints the size of each `.so`. `--debug` builds without
+optimizations. `jniLibs/` is generated, not versioned. `x86_64` is not built (rules T3).
 
 Size-oriented profile, in `engine/Cargo.toml`:
 
@@ -37,8 +40,14 @@ strip = true
 # No `panic = "abort"`: panics must unwind so the bridge can turn them into exceptions.
 ```
 
-Measured on 2026-11-08 (adblock 0.13.5, jni 0.22.4, NDK r30): `libtvshields_engine.so` is
-1.9 MB for `armeabi-v7a` and 2.9 MB for `arm64-v8a`.
+Measured on 2026-11-08 (adblock 0.13.5, jni 0.22.4, NDK r30, Rust 1.99.1), roadmap 1.3 / rules C3:
+
+| ABI | `libtvshields_engine.so` |
+|---|---|
+| `armeabi-v7a` | 1,967,532 bytes (1.88 MB) |
+| `arm64-v8a` | 2,908,640 bytes (2.77 MB) |
+
+Both only depend on `libc.so` and `libdl.so` (no `libc++_shared.so` to bundle).
 
 ## Bridge shape
 

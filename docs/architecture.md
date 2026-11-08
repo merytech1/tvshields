@@ -296,7 +296,7 @@ No synced history and no accounts.
 | Native build | `cargo-ndk` + Android NDK | Produces `jniLibs/<abi>/*.so` |
 | Periodic tasks | WorkManager | List updates |
 | Settings | Jetpack DataStore | Simple and asynchronous |
-| Tests | JUnit + Robolectric (Kotlin), `cargo test` (Rust), instrumented tests on the emulator | |
+| Tests | JUnit + Robolectric (Kotlin), `cargo test` (Rust), instrumented tests on the reference TV | |
 | Real-device verification | REA + `adb` on the reference TV | See [resources/rea.md](resources/rea.md) |
 | CI | GitHub Actions | Build, tests and APK size check (T1) |
 
