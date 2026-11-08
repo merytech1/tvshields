@@ -69,7 +69,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 |---|---|---|---|
 | 6.1 | Shields panel: status, per-page counter | The number of blocked items on the current page is visible | ⬜ |
 | 6.2 | Per-site toggle (P3, C5) | Turning Shields off for a domain is remembered and reloads without blocking | ⬜ |
-| 6.3 | Settings: optional lists, force update | Enabling a list downloads and applies it | ⬜ |
+| 6.3 | Settings: optional lists, force update, appearance (mode and accent, design §2) | Enabling a list downloads and applies it; mode and accent changes apply immediately and persist | ⬜ |
 | 6.4 | "About": licenses and credits (L1, L2) | All licenses and lists are visible | ⬜ |
 
 ## Phase 7 — Search

@@ -10,9 +10,10 @@ and rules P6 (remote only) and P7 (no Brave branding) apply on top of it.
 should feel like a well-made instrument: calm, precise, quiet when everything is fine, clear when
 something needs attention.
 
-**Sovereignty** is the idea behind the brand: *you decide what reaches your screen*. Purple, once
-reserved for those who ruled themselves, carries that idea. tvshields is not a cold wall against
-threats; it gives the viewer control over their own space.
+**Sovereignty** is the idea behind the brand: *you decide what reaches your screen*. tvshields
+is not a cold wall against threats; it gives the viewer control over their own space. Purple, once
+reserved for those who ruled themselves, is the brand color that carries that idea. The same
+idea applies to the interface: the viewer picks how it looks (§2).
 
 Principles, in priority order:
 
@@ -28,19 +29,28 @@ Principles, in priority order:
 5. **Light on the TV.** No decorative effects, blur or heavy animation (T7). System font, vector
    icons, flat surfaces.
 
-## 2. Themes
+## 2. Appearance
 
-Two themes, **dark** and **light**, sharing the same structure and accent.
+The viewer chooses two independent settings in **Settings → Appearance**. Both are stored and
+applied immediately, and give four combinations with the same structure.
 
-- **Dark is the default** on a fresh install: it suits dim living rooms and avoids glare.
-- The user can switch to light in Settings. The choice is stored and applied immediately.
-- Web pages are not recolored: the theme only affects tvshields' own UI.
+| Setting | Options | Default |
+|---|---|---|
+| **Mode** | Dark, Light | Dark: suits dim living rooms and avoids glare |
+| **Accent** | Purple, Emerald | Purple: the brand color |
+
+- Web pages are not recolored: appearance only affects tvshields' own UI.
+- The logo and launcher banner always use purple (§12); the accent setting only changes the UI.
 
 ## 3. Color
 
-Cool neutral grays carry the UI; **purple** (a warm, reddish purple) is the single accent. It is
-the brand color and marks the focused element and the primary action. The "protected" state has
-its own green (§3.3), so purple means *you are in control* and green means *protected*.
+Cool neutral grays carry the UI, and **one accent** colors everything that matters: the focused
+element, the primary action, selection and the "Shields on" state. There is never a second
+accent on screen: two saturated hues competing look noisy and break the sober tone. Being
+protected *is* being in control, so one color means both.
+
+Each accent provides the same token set (§3.2), so components never depend on which accent is
+active. Amber and red stay reserved for warnings and errors (§3.3).
 
 All text pairs meet WCAG AA (≥ 4.5:1). Ratios were computed with the WCAG 2.x formula.
 
@@ -63,24 +73,42 @@ All text pairs meet WCAG AA (≥ 4.5:1). Ratios were computed with the WCAG 2.x 
 | `text-tertiary` on `background` | 5.22 | 4.56 |
 | `text-primary` on `surface-raised` | 12.95 | 15.58 |
 
-### 3.2 Accent: purple
+### 3.2 Accents
 
-| Token | Dark | Light | Use |
-|---|---|---|---|
-| `accent` | `#C99BEB` | `#7E36AE` | Focus ring, primary button, selection, logo |
-| `on-accent` | `#1E0B2B` | `#FFFFFF` | Text and icons on `accent` |
-| `accent-container` | `#3A2150` | `#F1E4FA` | Selected rows, subtle highlights |
-| `on-accent-container` | `#EBD3FA` | `#4E1A72` | Text on `accent-container` |
+| Token | Use |
+|---|---|
+| `accent` | Focus ring, primary button, selection, toggles on, Shields-on badge |
+| `on-accent` | Text and icons on `accent` |
+| `accent-container` | Selected rows, subtle highlights |
+| `on-accent-container` | Text on `accent-container` |
 
-| Pair | Dark | Light |
+**Purple** (default): a warm, reddish purple. Stands for sovereignty and the viewer in control.
+
+| Token | Dark | Light |
 |---|---|---|
-| `accent` on `background` | 8.37 | 6.41 |
-| `accent` on `surface` | 7.71 | 6.94 |
-| `on-accent` on `accent` | 8.24 | 6.94 |
-| `on-accent-container` on `accent-container` | 10.06 | 10.04 |
+| `accent` | `#C99BEB` | `#7E36AE` |
+| `on-accent` | `#1E0B2B` | `#FFFFFF` |
+| `accent-container` | `#3A2150` | `#F1E4FA` |
+| `on-accent-container` | `#EBD3FA` | `#4E1A72` |
+
+**Emerald**: reads at once as "safe" and "protected".
+
+| Token | Dark | Light |
+|---|---|---|
+| `accent` | `#3FCF94` | `#0A7A4F` |
+| `on-accent` | `#04170F` | `#FFFFFF` |
+| `accent-container` | `#143A2C` | `#D3F2E3` |
+| `on-accent-container` | `#A8F0CF` | `#064D31` |
+
+| Pair | Purple dark | Purple light | Emerald dark | Emerald light |
+|---|---|---|---|---|
+| `accent` on `background` | 8.37 | 6.41 | 9.44 | 4.96 |
+| `accent` on `surface` | 7.71 | 6.94 | 8.69 | 5.37 |
+| `on-accent` on `accent` | 8.24 | 6.94 | 9.31 | 5.37 |
+| `on-accent-container` on `accent-container` | 10.06 | 10.04 | 9.59 | 8.32 |
 
 Rules:
-- **One accent-filled element per screen** (the primary action), never more.
+- **One accent-filled element per screen** (the primary action or the Shields badge), never more.
 - The accent is never used for decoration, illustrations or large backgrounds.
 - No orange or Brave-like hues anywhere (P7).
 
@@ -88,15 +116,12 @@ Rules:
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `success` | `#3FCF94` | `#0A7A4F` | Shields on (badge), list updated |
-| `on-success` | `#04170F` | `#FFFFFF` | Text on `success` |
 | `warning` | `#E8B04A` | `#8A5A00` | Shields off for a site, lists outdated, WebView too old (C4) |
 | `on-warning` | `#1F1400` | `#FFFFFF` | Text on `warning` |
 | `danger` | `#F2786D` | `#B3261E` | Errors: no lists and no connection (C1), failed load |
 | `on-danger` | `#240604` | `#FFFFFF` | Text on `danger` |
 
-Contrast: `success` 9.44 (dark) and 4.96 (light) on `background`; `on-success` on `success`
-9.31 and 5.37.
+"Shields on" uses `accent`, not a status color (§3).
 
 Status is never conveyed by color alone: it always comes with an icon and a word
 (e.g. shield-off icon + "Shields off").
@@ -172,8 +197,8 @@ Focus is the most important visual state on a TV (P6).
 - Opening a panel moves focus into it; closing it returns focus to the element that opened it.
 - Focus order follows reading order: left to right, top to bottom.
 
-Ring contrast: 6.79:1 on `surface-raised` in dark, 6.94:1 on `surface` in light (≥ 3:1 needed
-for non-text UI).
+Ring contrast (≥ 3:1 needed for non-text UI): purple 6.79 on `surface-raised` (dark) and 6.94
+on `surface` (light); emerald 7.66 and 5.37.
 
 ## 7. Motion
 
@@ -206,7 +231,7 @@ The building blocks the mockups and Compose code are made from.
 |---|---|
 | **Top bar** | Back, reload, home, address bar, Shields badge, settings. Height 64 dp |
 | **Address bar** | `surface-raised` field, `body` text; shows the domain when idle and the full URL when focused. OK opens the TV keyboard |
-| **Shields badge** | Pill with shield icon + blocked count. On: `success` / `on-success`. Off for this site: `warning` outline + shield-off icon |
+| **Shields badge** | Pill with shield icon + blocked count. On: `accent` / `on-accent`. Off for this site: `warning` outline + shield-off icon |
 | **Shields panel** | Side sheet: site name, on/off toggle (C5), counters by type (ads, trackers, scripts), "Report a broken site" later |
 | **List row** | Icon, title, optional secondary line, optional trailing value or toggle. Min height 64 dp |
 | **Toggle** | Track + thumb; on = `accent`. Always paired with a text state ("On" / "Off") |
@@ -240,14 +265,14 @@ Short, factual, calm. The UI speaks as the product, in the second person.
 
 - **Name:** tvshields, always lowercase in running text and in the launcher label.
 - **Logo:** to be designed with the mockups (roadmap 2.0): a simple, original shield mark in
-  `accent` (purple) that reads at launcher-banner size (320×180 dp). No Brave lion, colors or
-  shapes (P7).
-- **Color meaning:** purple = sovereignty, the viewer in control (brand, focus); green = protected
-  (Shields status only).
+  purple that reads at launcher-banner size (320×180 dp). It stays purple whatever accent the
+  viewer picks. No Brave lion, colors or shapes (P7).
+- **Brand color:** purple (`#7E36AE`, and `#C99BEB` on dark backgrounds).
 
 ## 13. Implementation notes (Compose for TV)
 
-- Tokens map to a `TvShieldsTheme` (colors, typography, shapes) with one `ColorScheme` per theme.
+- Tokens map to a `TvShieldsTheme` (colors, typography, shapes). The `ColorScheme` is built from
+  the neutrals of the chosen mode plus the chosen accent (2 × 2 combinations).
   Components read tokens, never raw hex values.
 - Focus styling uses Compose for TV's focus indication (`Surface` / `ClickableSurfaceDefaults`),
   configured once in the theme.
