@@ -1,0 +1,24 @@
+[package]
+name = "tvshields-engine"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "tvshields blocking engine: a thin wrapper around adblock-rust for Android"
+repository = "https://github.com/mmanosaslva/tvshields"
+publish = false
+
+[lib]
+name = "tvshields_engine"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# No `single-thread`: the engine is shared across WebView threads (rules C2).
+adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
