@@ -21,7 +21,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 |---|---|---|---|
 | 1.1 | `engine/` crate wrapping `adblock::Engine` (create, check request, cosmetic, resources, serialize) | `cargo test` covers block, exception, redirect, cosmetic and serialization | ✅ |
 | 1.2 | Export JNI functions | Rust tests for the type-conversion layer | ✅ |
-| 1.3 | Build for `armeabi-v7a`, `arm64-v8a`, `x86_64` with `cargo-ndk` | `.so` files produced and their size recorded (C3) | ⬜ |
+| 1.3 | Build for `armeabi-v7a` and `arm64-v8a` with `cargo-ndk` | `.so` files produced and their size recorded (C3) | ✅ |
 
 ## Phase 2 — Minimal browser
 
