@@ -28,7 +28,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | # | Task | Done when | Status |
 |---|---|---|---|
 | 2.0 | UI mockups in Claude Design (shadcn/ui allowed): browser, address bar, Shields panel, settings, search picker | Design system in `docs/design.md` (done); prompts in `docs/mockup-prompts.md` (done); mockups approved, saved in `docs/mockups/` and referenced from `design.md` | ✅ |
-| 2.1 | Android project (Kotlin, Compose for TV, MVVM, minSdk 24, Leanback launcher + banner) | The app shows up on the TV home screen and opens a screen | ⬜ |
+| 2.1 | Android project (Kotlin, Compose for TV, MVVM, minSdk 24, Leanback launcher + banner) | The app shows up on the TV home screen and opens a screen | ✅ |
 | 2.2 | Full-screen WebView + address bar | Navigates to a URL typed with the TV keyboard | ⬜ |
 | 2.3 | Virtual cursor and arrow-key scrolling | Links on any page can be clicked using only the remote | ⬜ |
 | 2.4 | Back, reload, home | Basic navigation fully usable with the remote | ⬜ |
