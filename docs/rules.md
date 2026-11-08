@@ -51,7 +51,7 @@ anything is implemented.
 | W2 | Commits follow **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`…). |
 | W3 | **No `Co-Authored-By`** or AI attribution in commits or PRs. |
 | W4 | **`main` is not touched without explicit permission.** Work happens on branches (`feat/…`, `docs/…`) and lands through a PR. |
-| W5 | Code, identifiers, file names and **repository documentation in English**. A Spanish version of the documentation is produced at the end of the project (roadmap 9.5). |
+| W5 | Code, identifiers, file names, **code comments** and **repository documentation in English**. Comments are brief and only where the code doesn't speak for itself. A Spanish version of the documentation is produced at the end of the project (roadmap 9.5). |
 | W6 | Every new architecture decision is documented in `docs/` in the same PR that introduces it. |
 | W7 | Every task defines a verifiable **definition of done** (see the [roadmap](roadmap.md)). |
 
