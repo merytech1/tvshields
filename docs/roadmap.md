@@ -12,7 +12,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | 0.1 | Create the repo, description and topics | Public repo with an initial commit | ✅ |
 | 0.2 | Base documentation: README, rules, architecture, roadmap, resources | Approved and merged into `main` | ✅ |
 | 0.3 | Settle pending decisions (license, name, search engine) | Recorded in `rules.md` and `LICENSE` created | ✅ |
-| 0.4 | Local toolchain: JDK 17, Android SDK/NDK, Rust + Android targets, `cargo-ndk` | `cargo ndk --version` and `./gradlew --version` work; versions recorded in `docs/resources/toolchain.md` | ⬜ |
+| 0.4 | Local toolchain on Windows, installed on `D:`: JDK 17+, Android SDK/NDK, Rust (`windows-gnu`) + Android targets, `cargo-ndk`, `gh` | `cargo ndk --version` and `./gradlew --version` work; versions recorded in `docs/resources/toolchain.md` | ⬜ |
 | 0.5 | Connect the TV over `adb` (network debugging) | `adb devices` shows the TV; REA lists its packages | ⬜ |
 
 ## Phase 1 — Native engine
@@ -27,7 +27,8 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 
 | # | Task | Done when | Status |
 |---|---|---|---|
-| 2.1 | Android project (Kotlin, Compose for TV, minSdk 24, Leanback launcher + banner) | The app shows up on the TV home screen and opens a screen | ⬜ |
+| 2.0 | UI mockups in Claude Design (shadcn/ui allowed): browser, address bar, Shields panel, settings, search picker | Mockups approved; `docs/ui-design.md` with screens and design tokens | ⬜ |
+| 2.1 | Android project (Kotlin, Compose for TV, MVVM, minSdk 24, Leanback launcher + banner) | The app shows up on the TV home screen and opens a screen | ⬜ |
 | 2.2 | Full-screen WebView + address bar | Navigates to a URL typed with the TV keyboard | ⬜ |
 | 2.3 | Virtual cursor and arrow-key scrolling | Links on any page can be clicked using only the remote | ⬜ |
 | 2.4 | Back, reload, home | Basic navigation fully usable with the remote | ⬜ |
