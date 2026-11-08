@@ -13,7 +13,7 @@ in the style of Brave's *Shields*, built to be used with the TV remote.
 | **Cosmetic filtering** | The gaps, empty banners and black screens left by blocked ads disappear, and the content reflows. |
 | **Script replacement** | Scripts that detect ad blockers or track the user are neutralized with *scriptlets* and harmless fake resources (including those generated with *SugarCoat*, Brave's technique). |
 | **Per-site Shields** | On by default. They can be turned off for a single site if something breaks. Shows a counter of blocked items. |
-| **Search** | Configurable search engine from the address bar. |
+| **Search** | Brave Search by default; DuckDuckGo, Startpage or Google can be chosen as the default in Settings. |
 | **TV remote** | Everything works with the arrows, OK and Back. |
 
 ## Where it runs
@@ -51,4 +51,4 @@ its trademarks. It reuses Brave's open-source components under their licenses.
 
 ## License
 
-To be decided (see [rules](docs/rules.md#pending-decisions)).
+[MPL-2.0](LICENSE).

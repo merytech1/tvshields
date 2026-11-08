@@ -225,18 +225,27 @@ Mobile app promo blocker. Regional and "annoyances" lists are optional in Settin
 
 ## 7. Search
 
+Brave Search is the default (P5). In Settings the user can pick a different default
+search engine. Each provider is a name, an icon and a URL template:
+
+| Provider | Template | Results come from | |
+|---|---|---|---|
+| Brave Search | `https://search.brave.com/search?q=%s` | Own index | **default** |
+| DuckDuckGo | `https://duckduckgo.com/?q=%s` | Mostly Bing | selectable |
+| Startpage | `https://www.startpage.com/do/search?q=%s` | Google, without tracking | selectable |
+| Google | `https://www.google.com/search?q=%s` | Google | selectable |
+
 `search/` resolves what is typed in the address bar:
 - If it looks like a URL (`domain.tld`, `http…`) → it is opened.
-- Otherwise → the chosen engine's template (`https://duckduckgo.com/?q=%s`).
+- Otherwise → the chosen provider's template.
 
-Preloaded engines: DuckDuckGo (default), Brave Search, Google, Bing, Startpage. No live
-suggestions (rules C10).
+No live suggestions (rules C10).
 
 ## 8. Stored data
 
 | Data | Where |
 |---|---|
-| General settings, search engine, sites with Shields off | Jetpack DataStore |
+| General settings, chosen search provider, sites with Shields off | Jetpack DataStore |
 | Downloaded lists, `resources.json` | `filesDir/lists/` |
 | Serialized engine | `filesDir/engine.dat` (includes the crate version; regenerated if it changes) |
 | Block counters | In memory per tab. The cumulative total goes to DataStore. |

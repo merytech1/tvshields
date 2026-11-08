@@ -11,7 +11,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 |---|---|---|---|
 | 0.1 | Create the repo, description and topics | Public repo with an initial commit | ✅ |
 | 0.2 | Base documentation: README, rules, architecture, roadmap, resources | Approved and merged into `main` | ✅ |
-| 0.3 | Settle pending decisions (license, name, search engine) | Recorded in `rules.md` and `LICENSE` created | ⬜ |
+| 0.3 | Settle pending decisions (license, name, search engine) | Recorded in `rules.md` and `LICENSE` created | ✅ |
 | 0.4 | Local toolchain: JDK 17, Android SDK/NDK, Rust + Android targets, `cargo-ndk` | `cargo ndk --version` and `./gradlew --version` work; versions recorded in `docs/resources/toolchain.md` | ⬜ |
 | 0.5 | Connect the TV over `adb` (network debugging) | `adb devices` shows the TV; REA lists its packages | ⬜ |
 
@@ -76,7 +76,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | # | Task | Done when | Status |
 |---|---|---|---|
 | 7.1 | Text → URL or search resolution | Unit tests for edge cases (`localhost`, IPs, `foo.bar`, phrases) | ⬜ |
-| 7.2 | Search engine picker in Settings | The choice persists and is applied | ⬜ |
+| 7.2 | Default search engine picker in Settings (Brave Search, DuckDuckGo, Startpage, Google) | Brave Search on a fresh install; a changed choice persists and applies to the next search | ⬜ |
 
 ## Phase 8 — Verification on the real TV (with REA)
 
