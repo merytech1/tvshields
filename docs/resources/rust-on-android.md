@@ -56,7 +56,7 @@ The bridge lives in `engine/src/jni_bridge.rs` (compiled for Android only) on to
 
 - **Registration with `RegisterNatives` in `JNI_OnLoad`**, not with mangled `Java_…` symbol
   names. The Kotlin class path is a single constant, `NATIVE_CLASS`
-  (`io/github/mmanosaslva/tvshields/engine/NativeEngine`), so renaming the package means changing
+  (`io/github/merytech1/tvshields/engine/NativeEngine`), so renaming the package means changing
   one line. `JNI_OnLoad` is the only exported symbol; if the class or a method is missing, the
   library load fails with `UnsatisfiedLinkError`.
 - **Handles are ids, not pointers.** Rust keeps the engines in a registry
@@ -71,7 +71,7 @@ The bridge lives in `engine/src/jni_bridge.rs` (compiled for Android only) on to
 Kotlin side (written in roadmap 2.5):
 
 ```kotlin
-package io.github.mmanosaslva.tvshields.engine
+package io.github.merytech1.tvshields.engine
 
 object NativeEngine {
     init { System.loadLibrary("tvshields_engine") }
