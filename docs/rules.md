@@ -15,9 +15,9 @@ anything is implemented.
 | P2 | **Shields are on by default** after installation. |
 | P3 | Shields can be **turned off per site** (domain), and that preference is remembered. |
 | P4 | Shields cover three capabilities: **network blocking** (1.1), **cosmetic filtering** (1.2) and **script replacement** (1.3). |
-| P5 | The search engine is **configurable**; DuckDuckGo by default. |
+| P5 | Default search engine: **Brave Search**. The user can pick another default in Settings among **DuckDuckGo, Startpage and Google**. |
 | P6 | Everything can be used **with the TV remote only** (arrows, OK, Back). No mouse or touchscreen. |
-| P7 | **Own** name and logo. Using "Brave", its lion or its visual identity is forbidden. |
+| P7 | **Own** name and logo: the app is called **tvshields**. Using "Brave", its lion or its visual identity is forbidden. Listing Brave Search as a search option is allowed (it is just a URL). |
 
 ## 2. Technical (T)
 
@@ -71,10 +71,10 @@ anything is implemented.
 | C10 | T9 × P5 | The search engine receives what is typed in the address bar. | Only when the user searches (explicit action). No live suggestions by default. |
 | C11 | L2 × T6 × 1.3 | uBlock Origin scriptlets (GPLv3) are essential for 1.3, but bundling them in the APK would force the app to be licensed under the GPL. | They are not in the APK. A CI generator builds `resources.json` (uBO + Brave) and publishes it as a standalone file on GitHub Releases, with its GPLv3 license and a link to the uBO source. The app downloads it at runtime, like the lists (T6). |
 
-## Pending decisions
+## Decisions
 
-Owned by the project lead:
-
-1. **tvshields license.** Options compatible with what we use: MPL-2.0 (same as Brave), MIT or Apache-2.0.
-2. **App display name** on the TV. `tvshields` is the repository name.
-3. **Confirm DuckDuckGo** as the default search engine (P5).
+| Date | Decision |
+|---|---|
+| 2026-11-07 | License: **MPL-2.0**, the same as Brave's components (`LICENSE`). |
+| 2026-11-07 | App display name: **tvshields** (P7). |
+| 2026-11-07 | Search: **Brave Search** by default; DuckDuckGo, Startpage and Google selectable in Settings (P5). |
