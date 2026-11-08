@@ -264,9 +264,10 @@ Short, factual, calm. The UI speaks as the product, in the second person.
 ## 12. Brand
 
 - **Name:** tvshields, always lowercase in running text and in the launcher label.
-- **Logo:** to be designed with the mockups (roadmap 2.0): a simple, original shield mark in
-  purple that reads at launcher-banner size (320×180 dp). It stays purple whatever accent the
-  viewer picks. No Brave lion, colors or shapes (P7).
+- **Logo:** direction A, "Split": a shield outline with its right half filled, the viewer holding
+  their side of the shield. Purple, readable at launcher-banner size (320×180 dp) and at 48 px. It
+  stays purple whatever accent the viewer picks. No Brave lion, colors or shapes (P7). See
+  [the logo sheet](mockups/logo.png).
 - **Brand color:** purple (`#7E36AE`, and `#C99BEB` on dark backgrounds).
 
 ## 13. Implementation notes (Compose for TV)
@@ -279,3 +280,32 @@ Short, factual, calm. The UI speaks as the product, in the second person.
 - The mockups (roadmap 2.0) use these exact token values; shadcn/ui is only the mockup component
   base and never ships in the APK (architecture §12). The prompts used in Claude Design are in
   [mockup-prompts.md](mockup-prompts.md).
+
+## 14. Mockups
+
+Approved mockups (roadmap 2.0), 1920×1080 px for the 960×540 dp canvas, in every mode and accent.
+They are the reference for phase 2; if a mockup and this document disagree, this document wins.
+
+| Screen | Dark + purple | Light + purple | Dark + emerald | Light + emerald |
+|---|---|---|---|---|
+| Browser | [png](mockups/dark-purple/browser.png) | [png](mockups/light-purple/browser.png) | [png](mockups/dark-emerald/browser.png) | [png](mockups/light-emerald/browser.png) |
+| Browser, bar hidden | [png](mockups/dark-purple/browser-bar-hidden.png) | [png](mockups/light-purple/browser-bar-hidden.png) | [png](mockups/dark-emerald/browser-bar-hidden.png) | [png](mockups/light-emerald/browser-bar-hidden.png) |
+| Address bar and keyboard | [png](mockups/dark-purple/address-bar.png) | [png](mockups/light-purple/address-bar.png) | [png](mockups/dark-emerald/address-bar.png) | [png](mockups/light-emerald/address-bar.png) |
+| Shields panel, on | [png](mockups/dark-purple/shields-on.png) | [png](mockups/light-purple/shields-on.png) | [png](mockups/dark-emerald/shields-on.png) | [png](mockups/light-emerald/shields-on.png) |
+| Shields panel, off | [png](mockups/dark-purple/shields-off.png) | [png](mockups/light-purple/shields-off.png) | [png](mockups/dark-emerald/shields-off.png) | [png](mockups/light-emerald/shields-off.png) |
+| Settings, appearance | [png](mockups/dark-purple/settings-appearance.png) | [png](mockups/light-purple/settings-appearance.png) | [png](mockups/dark-emerald/settings-appearance.png) | [png](mockups/light-emerald/settings-appearance.png) |
+| Settings, search engine | [png](mockups/dark-purple/settings-search-engine.png) | [png](mockups/light-purple/settings-search-engine.png) | [png](mockups/dark-emerald/settings-search-engine.png) | [png](mockups/light-emerald/settings-search-engine.png) |
+| First launch, downloading | [png](mockups/dark-purple/first-launch.png) | [png](mockups/light-purple/first-launch.png) | [png](mockups/dark-emerald/first-launch.png) | [png](mockups/light-emerald/first-launch.png) |
+| First launch, no connection | [png](mockups/dark-purple/no-connection.png) | [png](mockups/light-purple/no-connection.png) | [png](mockups/dark-emerald/no-connection.png) | [png](mockups/light-emerald/no-connection.png) |
+
+Logo, launcher banner and app icons: [logo.png](mockups/logo.png).
+
+![Browser, dark + purple](mockups/dark-purple/browser.png)
+
+Decisions made while drawing them:
+
+- The Shields panel opens below the top bar, not over it, so the Shields badge stays visible and
+  shows the on/off change.
+- While the panel is open, the badge switches from accent fill to accent-container, so the "on"
+  toggle is the only accent-filled element on screen (§3.2).
+- The system keyboard is a neutral placeholder: Android TV draws it, not tvshields.
