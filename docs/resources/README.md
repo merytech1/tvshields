@@ -12,5 +12,6 @@ how we use it, which parts of its API we touch, and its known limitations.
 | [android-tv.md](android-tv.md) | TV app requirements, Leanback, remote control | — |
 | [rust-on-android.md](rust-on-android.md) | NDK, `cargo-ndk`, `jni` crate | Apache-2.0 / MIT |
 | [rea.md](rea.md) | REA: observing sites and the TV | MIT |
+| [toolchain.md](toolchain.md) | Local build toolchain on Windows and its versions | — |
 
 Sources verified on 2026-11-07. When a version changes, the page is updated.
