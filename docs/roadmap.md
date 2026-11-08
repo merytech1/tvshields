@@ -10,7 +10,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | # | Task | Done when | Status |
 |---|---|---|---|
 | 0.1 | Create the repo, description and topics | Public repo with an initial commit | ✅ |
-| 0.2 | Base documentation: README, rules, architecture, roadmap, resources | Approved and merged into `main` | 🔄 |
+| 0.2 | Base documentation: README, rules, architecture, roadmap, resources | Approved and merged into `main` | ✅ |
 | 0.3 | Settle pending decisions (license, name, search engine) | Recorded in `rules.md` and `LICENSE` created | ⬜ |
 | 0.4 | Local toolchain: JDK 17, Android SDK/NDK, Rust + Android targets, `cargo-ndk` | `cargo ndk --version` and `./gradlew --version` work; versions recorded in `docs/resources/toolchain.md` | ⬜ |
 | 0.5 | Connect the TV over `adb` (network debugging) | `adb devices` shows the TV; REA lists its packages | ⬜ |
