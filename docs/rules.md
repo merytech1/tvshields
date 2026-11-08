@@ -50,7 +50,7 @@ anything is implemented.
 | W1 | **One task at a time**: it is finished, explained, a commit message is proposed, and approval is awaited. |
 | W2 | Commits follow **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`…). |
 | W3 | **No `Co-Authored-By`** or AI attribution in commits or PRs. |
-| W4 | **`main` is not touched without explicit permission.** Work happens on branches (`feat/…`, `docs/…`) and lands through a PR. |
+| W4 | Work happens on branches (`feat/…`, `fix/…`, `docs/…`, `chore/…`) created from **`develop`** and lands in `develop` through a PR (merge commit only). **`main` is locked** until the project is finished; then `develop` is merged into `main` with explicit permission. Enforced by the GitHub rulesets `protect-develop` and `lock-main`. |
 | W5 | Code, identifiers, file names, **code comments** and **repository documentation in English**. Comments are brief and only where the code doesn't speak for itself. A Spanish version of the documentation is produced at the end of the project (roadmap 9.5). |
 | W6 | Every new architecture decision is documented in `docs/` in the same PR that introduces it. |
 | W7 | Every task defines a verifiable **definition of done** (see the [roadmap](roadmap.md)). |
