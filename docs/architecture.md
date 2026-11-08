@@ -322,6 +322,9 @@ Read over `adb` on 2026-11-08 (roadmap 0.5):
 Consequences: the `armeabi-v7a` build is the one tested on this TV; the tight free storage makes
 the APK size goal (T1) and the size of cached lists matter.
 
+Quirk: the WebView paints its background over Compose content laid out *before* it, even outside
+its own bounds. UI that sits next to the WebView (the top bar) is drawn after it (`zIndex`).
+
 Connection: enable *Developer options → USB debugging* on the TV, then
 `adb connect <TV IP>:5555` and accept the authorization prompt on screen.
 
