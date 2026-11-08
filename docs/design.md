@@ -277,4 +277,5 @@ Short, factual, calm. The UI speaks as the product, in the second person.
 - Focus styling uses Compose for TV's focus indication (`Surface` / `ClickableSurfaceDefaults`),
   configured once in the theme.
 - The mockups (roadmap 2.0) use these exact token values; shadcn/ui is only the mockup component
-  base and never ships in the APK (architecture §12).
+  base and never ships in the APK (architecture §12). The prompts used in Claude Design are in
+  [mockup-prompts.md](mockup-prompts.md).
