@@ -13,7 +13,7 @@
 
 | Android ABI | Rust target | Use |
 |---|---|---|
-| `armeabi-v7a` | `armv7-linux-androideabi` | 32-bit TVs (very common, probably including the reference TV) |
+| `armeabi-v7a` | `armv7-linux-androideabi` | 32-bit TVs (very common, including the reference TV, which only supports this ABI) |
 | `arm64-v8a` | `aarch64-linux-android` | 64-bit TVs and boxes |
 | `x86_64` | `x86_64-linux-android` | Emulator only, never in release (rules T3) |
 

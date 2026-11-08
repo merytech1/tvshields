@@ -305,6 +305,26 @@ No synced history and no accounts.
 JVC "COL 4K SMART TV" (manufactured by KTC), Android TV 11, MediaTek SoC, November 2023
 security patch. All performance measurements (T7) are taken on it.
 
+Read over `adb` on 2026-11-08 (roadmap 0.5):
+
+| Property | Value |
+|---|---|
+| Product / device | `KTC_JVC_4K_COL_21V2` / `zhongshan` |
+| Android | 11 (API 30), build `RTM7.230903.080`, security patch 2023-11-01 |
+| SoC | MediaTek `m7632`, 4 × Cortex-A55 |
+| ABI | **`armeabi-v7a` only** (32-bit kernel and userspace; no `arm64-v8a`) |
+| RAM | 1.8 GB total, ~730 MB available at idle |
+| Free storage | ~770 MB on `/data` (4 GB partition) |
+| UI resolution | 1920×1080 at 320 dpi (`xhdpi`) |
+| WebView | `com.google.android.webview` 156.0.8078.47 (updated through Play Store) |
+| Features | `leanback`, `leanback_only`, `type.television`; no touchscreen |
+
+Consequences: the `armeabi-v7a` build is the one tested on this TV; the tight free storage makes
+the APK size goal (T1) and the size of cached lists matter.
+
+Connection: enable *Developer options → USB debugging* on the TV, then
+`adb connect <TV IP>:5555` and accept the authorization prompt on screen.
+
 ## 11. Left to the implementer
 
 - Internal class and package names, as long as they follow the layout in §4.
