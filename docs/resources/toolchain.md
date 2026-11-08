@@ -12,7 +12,8 @@ lives on `D:\dev` (the `C:` drive has little free space). Versions recorded on 2
 | Android SDK Command-line Tools | 23.0 | `D:\dev\android-sdk\cmdline-tools\latest` |
 | Android SDK Platform-Tools (`adb`) | 37.0.1 | `D:\dev\android-sdk\platform-tools` |
 | Android SDK Platform | `android-37.0` | `D:\dev\android-sdk\platforms` |
-| Android SDK Build-Tools | 37.0.0 | `D:\dev\android-sdk\build-tools` |
+| Android SDK Build-Tools | 37.0.0, plus 36.0.0 (installed by AGP on first build) | `D:\dev\android-sdk\build-tools` |
+| Android Gradle Plugin / Kotlin | 9.5.1 / 2.4.21 | `gradle/libs.versions.toml` |
 | Android NDK | r30 (30.0.16248370) | `D:\dev\android-sdk\ndk\30.0.16248370` |
 | Rust (`stable-x86_64-pc-windows-gnu`, profile `minimal`) | 1.99.1 | `D:\dev\rust` |
 | Rust targets | `aarch64-linux-android`, `armv7-linux-androideabi` | — |
@@ -77,3 +78,24 @@ cargo ndk --version
 ```bash
 adb version
 ```
+
+## Building and installing the app
+
+`local.properties` (not versioned) points Gradle to the SDK. Use forward slashes:
+
+```properties
+sdk.dir=D:/dev/android-sdk
+```
+
+Build the engine first (`engine/build-android.sh`), then the APK, then install it on the TV:
+
+```bash
+./gradlew assembleDebug
+```
+
+```bash
+adb -s 192.168.1.13:5555 install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+On the reference TV, `adb exec-out screencap -p` prints vendor log lines before the PNG data;
+strip everything before the `\x89PNG` header to get a valid image.

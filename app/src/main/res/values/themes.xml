@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window theme only; the UI is drawn by Compose. Dark background avoids a white flash. -->
+    <style name="Theme.TvShields" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+</resources>

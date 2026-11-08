@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tvshields mark, direction "Split" (design.md §12). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path
+        android:pathData="M32,6 L53,13.5 V30 C53,43.5 44.5,53 32,58 C19.5,53 11,43.5 11,30 V13.5 Z"
+        android:strokeWidth="4"
+        android:strokeColor="@color/brand_purple_dark"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="@color/brand_purple_dark"
+        android:pathData="M32,6 L53,13.5 V30 C53,43.5 44.5,53 32,58 Z" />
+</vector>
