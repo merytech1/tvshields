@@ -27,38 +27,78 @@ Size-oriented profile, in `engine/Cargo.toml`:
 
 ```toml
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]   # rlib so `cargo test` can run on the host
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
-panic = "abort"
+# No `panic = "abort"`: panics must unwind so the bridge can turn them into exceptions.
 ```
+
+Measured on 2026-11-08 (adblock 0.13.5, jni 0.22.4, NDK r30): `libtvshields_engine.so` is
+1.9 MB for `armeabi-v7a` and 2.9 MB for `arm64-v8a`.
 
 ## Bridge shape
 
-```rust
-// engine/src/lib.rs
-#[no_mangle]
-pub extern "system" fn Java_…_NativeEngine_checkRequest(
-    mut env: JNIEnv, _class: JClass, handle: jlong,
-    url: JString, source: JString, request_type: JString,
-) -> jint { … }  // 0 = allow, 1 = block, 2 = redirect (content fetched in a separate call)
-```
+The bridge lives in `engine/src/jni_bridge.rs` (compiled for Android only) on top of
+`engine/src/bridge.rs` (plain Rust, unit-tested on the host).
+
+- **Registration with `RegisterNatives` in `JNI_OnLoad`**, not with mangled `Java_…` symbol
+  names. The Kotlin class path is a single constant, `NATIVE_CLASS`
+  (`io/github/mmanosaslva/tvshields/engine/NativeEngine`), so renaming the package means changing
+  one line. `JNI_OnLoad` is the only exported symbol; if the class or a method is missing, the
+  library load fails with `UnsatisfiedLinkError`.
+- **Handles are ids, not pointers.** Rust keeps the engines in a registry
+  (`id → Arc<RwLock<ShieldsEngine>>`). A released or unknown handle raises an exception instead of
+  touching freed memory, and a call already in flight keeps the engine alive until it returns, so
+  the engine can be swapped after a list update (roadmap 3.6) without races.
+- **Errors become Kotlin exceptions.** Every function runs inside `EnvUnowned::with_env`, which
+  catches errors and panics and throws `java.lang.RuntimeException`. Kotlin decides what to do
+  (for `nativeCheckRequest`, allow the request).
+- **Local references are freed per array element**, because Android allows at most 512 per call.
+
+Kotlin side (written in roadmap 2.5):
 
 ```kotlin
-// app: …/shields/NativeEngine.kt
+package io.github.mmanosaslva.tvshields.engine
+
 object NativeEngine {
     init { System.loadLibrary("tvshields_engine") }
-    external fun checkRequest(handle: Long, url: String, source: String, type: String): Int
+
+    @JvmStatic external fun nativeCreate(lists: Array<String>): Long
+    @JvmStatic external fun nativeDeserialize(bytes: ByteArray): Long
+    @JvmStatic external fun nativeSerialize(handle: Long): ByteArray
+    @JvmStatic external fun nativeUseResources(handle: Long, json: String): Int
+    @JvmStatic external fun nativeCheckRequest(
+        handle: Long, url: String, sourceUrl: String, requestType: String, method: String,
+    ): String?
+    @JvmStatic external fun nativeCosmeticResources(handle: Long, url: String): String
+    @JvmStatic external fun nativeHiddenSelectors(
+        handle: Long, classes: Array<String>, ids: Array<String>, exceptions: Array<String>,
+    ): String
+    @JvmStatic external fun nativeDestroy(handle: Long)
 }
 ```
 
-Bridge rules:
-- The `Engine` lives in Rust behind a pointer (`Box::into_raw`); Kotlin only holds the `handle`.
-- **No error crosses into the JVM**: every exported function handles its errors and returns "allow"
-  on failure. Since the release profile uses `panic = "abort"`, code on the bridge must not panic
-  (no `unwrap()` on external input).
-- Per-request calls pass only strings and integers. Large responses (cosmetic) travel as a single JSON.
+Wire formats:
+
+| Function | Returns |
+|---|---|
+| `nativeCheckRequest` | `null` = allow (no allocation in the common case), `"B"` = block, `"R<data URL>"` = redirect, `"W<url>"` = URL rewritten by `removeparam` |
+| `nativeCosmeticResources` | JSON object: `hide_selectors`, `procedural_actions`, `exceptions` (arrays of strings), `injected_script` (string), `generichide` (boolean) |
+| `nativeHiddenSelectors` | JSON array of selectors |
+| `nativeUseResources` | Number of resources loaded |
+
+## Windows host note
+
+`jni` has an unconditional build dependency (`walkdir` → `winapi-util`). With
+`winapi-util` ≥ 0.1.10 it pulls `windows-sys` 0.61, whose `raw-dylib` linking needs a full MinGW
+`dlltool` + `as` that the `windows-gnu` toolchain does not ship. `Cargo.lock` pins
+`winapi-util` to **0.1.9** (`windows-sys` 0.59, prebuilt import libraries). Do not run a plain
+`cargo update` without keeping that pin:
+
+```bash
+cargo update -p winapi-util --precise 0.1.9
+```
