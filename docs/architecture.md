@@ -338,11 +338,14 @@ Shields panel, settings, cursor) is designed and built by the project. Brave's U
 (P7) and Brave has no TV UI anyway; its *organization* (a shield icon next to the address bar that
 opens a panel with the counter and the toggle) is a reference.
 
+**Design system:** [design.md](design.md) defines the philosophy, themes (dark and light), the
+purple accent, typography, spacing, focus, motion, icons, components and copy. It is the source
+of truth for every mockup and screen.
+
 **Process** (roadmap 2.0):
-1. Mockups are made in **Claude Design** before any UI code. **shadcn/ui** may be used there as
-   the component base for the mockups.
-2. The approved mockups and the resulting design tokens (colors, type scale, spacing, focus
-   style) are recorded in `docs/ui-design.md`.
+1. Mockups are made in **Claude Design** before any UI code, using the tokens in
+   [design.md](design.md). **shadcn/ui** may be used there as the component base for the mockups.
+2. The approved mockups (screens) are added to [design.md](design.md).
 3. The UI is then implemented in **Compose for TV** following those mockups. shadcn/ui is a web
    (React) library: it is a visual reference only and never ships in the APK.
 

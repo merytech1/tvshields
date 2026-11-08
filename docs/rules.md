@@ -79,3 +79,4 @@ anything is implemented.
 | 2026-11-07 | App display name: **tvshields** (P7). |
 | 2026-11-07 | Search: **Brave Search** by default; DuckDuckGo, Startpage and Google selectable in Settings (P5). |
 | 2026-11-08 | `x86_64` dropped (T3): no emulator is used, and the reference TV only runs `armeabi-v7a`. |
+| 2026-11-08 | UI: sober and trustworthy personality with sovereignty as the brand idea; dark (default) and light themes; purple accent (brand, focus) and green for the protected state; Roboto system font. See [design.md](design.md). |

@@ -42,6 +42,7 @@ Details in [architecture](docs/architecture.md).
 | [docs/rules.md](docs/rules.md) | Project rules and constraints, and the check that they don't conflict |
 | [docs/architecture.md](docs/architecture.md) | Evaluated approaches, architecture, modules, flows and design |
 | [docs/roadmap.md](docs/roadmap.md) | Phases and tasks, each with a definition of done |
+| [docs/design.md](docs/design.md) | Design system: philosophy, themes, color, typography, focus and components |
 | [docs/resources/](docs/resources/README.md) | Specific documentation for each external resource we use |
 
 ## Disclaimer
