@@ -1,54 +1,54 @@
 # tvshields
 
-Navegador ligero y open source para **Android TV** que bloquea anuncios y rastreadores
-al estilo de los *Shields* de Brave, pensado para manejarse con el control remoto.
+A lightweight, open-source browser for **Android TV** that blocks ads and trackers
+in the style of Brave's *Shields*, built to be used with the TV remote.
 
-> **Estado:** en diseño. Todavía no hay APK. Ver [fases y tareas](docs/fases.md).
+> **Status:** design phase. There is no APK yet. See the [roadmap](docs/roadmap.md).
 
-## Qué hace
+## What it does
 
-| Función | Qué significa para quien lo usa |
+| Feature | What it means for the user |
 |---|---|
-| **Bloqueo de red** | Las peticiones a servidores de anuncios y rastreo se cortan antes de descargarse, usando listas de filtros (EasyList, EasyPrivacy, uBlock Origin, Brave). |
-| **Ocultación cosmética** | Los huecos, banners vacíos y pantallas negras que deja un anuncio bloqueado desaparecen; el contenido se reacomoda. |
-| **Reemplazo de scripts** | Los scripts que detectan bloqueadores o que rastrean se neutralizan con *scriptlets* y recursos falsos inofensivos (incluidos los generados con *SugarCoat*, la técnica de Brave). |
-| **Shields por sitio** | Activos por defecto; se pueden apagar solo para una página si algo se rompe. Contador de elementos bloqueados. |
-| **Búsqueda** | Buscador configurable desde la barra de direcciones. |
-| **Control remoto** | Todo se maneja con las flechas, OK y Atrás. |
+| **Network blocking** | Requests to ad and tracking servers are cut before they download, using filter lists (EasyList, EasyPrivacy, uBlock Origin, Brave). |
+| **Cosmetic filtering** | The gaps, empty banners and black screens left by blocked ads disappear, and the content reflows. |
+| **Script replacement** | Scripts that detect ad blockers or track the user are neutralized with *scriptlets* and harmless fake resources (including those generated with *SugarCoat*, Brave's technique). |
+| **Per-site Shields** | On by default. They can be turned off for a single site if something breaks. Shows a counter of blocked items. |
+| **Search** | Configurable search engine from the address bar. |
+| **TV remote** | Everything works with the arrows, OK and Back. |
 
-## Dónde funciona
+## Where it runs
 
-Cualquier televisor o caja con **Android 7.0 o superior**: Android TV, Google TV, Amazon Fire TV,
-cajas Android. **No** funciona en Samsung (Tizen), LG (webOS) ni Roku.
+Any TV or set-top box with **Android 7.0 or later**: Android TV, Google TV, Amazon Fire TV and
+Android boxes. It does **not** run on Samsung (Tizen), LG (webOS) or Roku.
 
-## Tecnologías
+## Tech stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
 | App | Kotlin, Android SDK (minSdk 24), Jetpack Compose for TV |
-| Motor web | Android System WebView (Chromium del sistema) + `androidx.webkit` |
-| Motor de bloqueo | [`adblock-rust`](https://github.com/brave/adblock-rust) de Brave (MPL-2.0), compilado a librería nativa |
-| Puente | Rust ↔ Kotlin vía JNI (crate `jni`), compilado con `cargo-ndk` |
-| Recursos de reemplazo | [`brave/adblock-resources`](https://github.com/brave/adblock-resources) (MPL-2.0, incluye SugarCoat) + scriptlets de [uBlock Origin](https://github.com/gorhill/uBlock) (GPLv3, descargados aparte) |
-| Listas de filtros | Catálogo de Brave: uBlock Origin, EasyList, EasyPrivacy, Brave, Fanboy (descargadas en tiempo de ejecución) |
-| Pruebas en dispositivo | [REA](https://github.com/morluto/rea) + `adb` |
+| Web engine | Android System WebView (system Chromium) + `androidx.webkit` |
+| Blocking engine | Brave's [`adblock-rust`](https://github.com/brave/adblock-rust) (MPL-2.0), compiled to a native library |
+| Bridge | Rust ↔ Kotlin via JNI (`jni` crate), built with `cargo-ndk` |
+| Replacement resources | [`brave/adblock-resources`](https://github.com/brave/adblock-resources) (MPL-2.0, includes SugarCoat) + [uBlock Origin](https://github.com/gorhill/uBlock) scriptlets (GPLv3, downloaded separately) |
+| Filter lists | Brave's catalog: uBlock Origin, EasyList, EasyPrivacy, Brave, Fanboy (downloaded at runtime) |
+| On-device testing | [REA](https://github.com/morluto/rea) + `adb` |
 
-Detalle en [arquitectura](docs/arquitectura.md).
+Details in [architecture](docs/architecture.md).
 
-## Documentación
+## Documentation
 
-| Documento | Contenido |
+| Document | Contents |
 |---|---|
-| [docs/reglas.md](docs/reglas.md) | Reglas y restricciones del proyecto, y verificación de que no se contradicen |
-| [docs/arquitectura.md](docs/arquitectura.md) | Enfoques evaluados, arquitectura, módulos, flujos y diseño |
-| [docs/fases.md](docs/fases.md) | Fases y tareas, con criterio de "hecho" |
-| [docs/recursos/](docs/recursos/) | Documentación específica de cada recurso externo que usamos |
+| [docs/rules.md](docs/rules.md) | Project rules and constraints, and the check that they don't conflict |
+| [docs/architecture.md](docs/architecture.md) | Evaluated approaches, architecture, modules, flows and design |
+| [docs/roadmap.md](docs/roadmap.md) | Phases and tasks, each with a definition of done |
+| [docs/resources/](docs/resources/README.md) | Specific documentation for each external resource we use |
 
-## Aviso
+## Disclaimer
 
-tvshields es un proyecto independiente. No está afiliado a Brave Software ni usa su marca.
-Reutiliza componentes open source de Brave bajo sus licencias.
+tvshields is an independent project. It is not affiliated with Brave Software and does not use
+its trademarks. It reuses Brave's open-source components under their licenses.
 
-## Licencia
+## License
 
-Pendiente de decidir (ver [reglas](docs/reglas.md#decisiones-pendientes)).
+To be decided (see [rules](docs/rules.md#pending-decisions)).
