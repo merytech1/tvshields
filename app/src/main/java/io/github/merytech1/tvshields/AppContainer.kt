@@ -8,6 +8,7 @@ import io.github.merytech1.tvshields.engine.NativeAdblockEngine
 import io.github.merytech1.tvshields.lists.FilterListRepository
 import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.shields.ShieldsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +38,8 @@ class AppContainer(val context: Context) {
 
     /** The blocking engine, null until loaded (or while there are no lists, rules C1). */
     val engine: StateFlow<AdblockEngine?> = _engine.asStateFlow()
+
+    val shields = ShieldsManager { _engine.value }
 
     fun loadEngine() {
         appScope.launch {

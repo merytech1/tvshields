@@ -174,6 +174,19 @@ scripts without a `.js` extension (e.g. `gtag/js?id=…`).
 `onPageStarted`/`doUpdateVisitedHistory`. Iframe resources are evaluated against the main
 page (accepted limitation).
 
+**Decisions in `ShieldsWebViewClient`** (roadmap 3.4):
+- Blocked subresource → empty `204 No Content` response.
+- Blocked main document (`$document` rules, e.g. malware domains) → a short page saying Shields
+  blocked it.
+- `redirect=` → blocked until the resources arrive (roadmap 5.2). Rewritten URLs (`removeparam`)
+  are ignored: the WebView cannot change a subresource's URL.
+- Engine still loading, non-HTTP URLs (`data:`, `blob:`) or an engine error → allowed.
+- `adb shell setprop log.tag.tvshields.block DEBUG` logs every blocked URL (read when the WebView
+  is created; used for roadmap 8.3).
+
+Checked on the reference TV (2026-11-09, default lists): adblock-tester.com scores 95/100
+(27 requests blocked); theverge.com loads normally with 16 ad and tracker requests blocked.
+
 ### 5.2 Cosmetic filtering (1.2)
 
 Two parts, as in Brave:

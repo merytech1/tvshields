@@ -6,4 +6,5 @@
     <string name="action_back">Back</string>
     <string name="action_reload">Reload</string>
     <string name="action_home">Home</string>
+    <string name="shields_blocked_page">Shields blocked this page: %s</string>
 </resources>

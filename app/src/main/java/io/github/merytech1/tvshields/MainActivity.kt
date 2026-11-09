@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TvShieldsTheme {
                 val browser: BrowserViewModel = viewModel(factory = BrowserViewModel.factory(container.searchResolver))
-                BrowserScreen(browser)
+                BrowserScreen(browser, container.shields)
             }
         }
     }
