@@ -40,7 +40,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 |---|---|---|---|
 | 3.1 | `FilterListRepository`: download the default catalog, storage, ETag | Test with a fake server: downloads, does not re-download if unchanged | ✅ |
 | 3.2 | Engine build + `engine.dat` (T8) | The second launch loads from cache; time measured on the TV | ✅ |
-| 3.3 | `RequestTypeGuesser` | Unit tests for every rule in architecture §5.1 | ⬜ |
+| 3.3 | `RequestTypeGuesser` | Unit tests for every rule in architecture §5.1 | ✅ |
 | 3.4 | `shouldInterceptRequest` → engine → block/allow | Test page with known ads: requests blocked | ⬜ |
 | 3.5 | First launch and offline case (C1) | Behaves as described in C1 | ⬜ |
 | 3.6 | `ListUpdateWorker` every 24 h with atomic swap | Test: update without interrupting ongoing browsing | ⬜ |
