@@ -2,13 +2,11 @@ package io.github.merytech1.tvshields.browser
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.view.KeyEvent
 import android.view.ViewConfiguration
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,10 +44,12 @@ import io.github.merytech1.tvshields.browser.cursor.CursorSize
 import io.github.merytech1.tvshields.browser.cursor.Direction
 import io.github.merytech1.tvshields.browser.cursor.Scroll
 import io.github.merytech1.tvshields.browser.cursor.WebViewInput
+import io.github.merytech1.tvshields.R
+import io.github.merytech1.tvshields.shields.ShieldsManager
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
 @Composable
-fun BrowserScreen(viewModel: BrowserViewModel) {
+fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
     val context = LocalContext.current
@@ -62,7 +62,7 @@ fun BrowserScreen(viewModel: BrowserViewModel) {
     var webViewFocused by remember { mutableStateOf(false) }
 
     val webView = remember {
-        createWebView(context, viewModel, colors.background.toArgb())
+        createWebView(context, viewModel, shields, colors.background.toArgb())
     }
 
     fun leaveToAddressBar() {
@@ -243,6 +243,7 @@ private fun handleKey(
 private fun createWebView(
     context: Context,
     viewModel: BrowserViewModel,
+    shields: ShieldsManager,
     backgroundColor: Int,
 ): TvWebView = TvWebView(context).apply {
     setBackgroundColor(backgroundColor)
@@ -250,12 +251,7 @@ private fun createWebView(
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
 
-    webViewClient = object : WebViewClient() {
-        override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) = viewModel.onPageStarted(url)
-        override fun onPageFinished(view: WebView, url: String) = viewModel.onPageFinished(url)
-        override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) =
-            viewModel.onHistoryChanged(view.canGoBack())
-    }
+    webViewClient = ShieldsWebViewClient(shields, viewModel, context.getString(R.string.shields_blocked_page))
     webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) = viewModel.onProgress(newProgress)
     }
