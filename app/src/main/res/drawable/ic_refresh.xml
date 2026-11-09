@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined "refresh", weight 400 (Apache-2.0). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M480,-160Q346,-160 253,-253Q160,-346 160,-480Q160,-614 253,-707Q346,-800 480,-800Q549,-800 612,-771.5Q675,-743 720,-690L720,-800L800,-800L800,-520L520,-520L520,-600L688,-600Q656,-656 600.5,-688Q545,-720 480,-720Q380,-720 310,-650Q240,-580 240,-480Q240,-380 310,-310Q380,-240 480,-240Q557,-240 619,-284Q681,-328 706,-400L790,-400Q762,-294 676,-227Q590,-160 480,-160Z" />
+    </group>
+</vector>

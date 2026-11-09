@@ -3,4 +3,7 @@
     <string name="app_name" translatable="false">tvshields</string>
     <string name="address_hint">Search or type a web address</string>
     <string name="start_message">Type a web address or search.</string>
+    <string name="action_back">Back</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_home">Home</string>
 </resources>

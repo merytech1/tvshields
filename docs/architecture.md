@@ -261,6 +261,13 @@ Mobile app promo blocker. Regional and "annoyances" lists are optional in Settin
   - OK goes to the page as a tap on release. A held OK (the remote repeats it) goes to the address
     bar. The press duration alone is not enough: `adb input keyevent --longpress` reports a zero
     duration.
+- **Top bar buttons**: back, reload and home sit left of the address bar. Disabled buttons
+  (no history, or nothing to reload on the start page) are not focusable. Left and Right move
+  between the buttons and the address bar while it is not being edited. Home loads `about:blank`
+  and draws the start page over it, so Back returns to the page that was left. The Back key also
+  works while the bar has focus. Only with no history does it leave the app.
+- **Page keyboards**: when the WebView loses focus, the keyboard a page field opened is hidden,
+  so it does not stay over the top bar.
 - **Address bar focus**: focus only shows the URL (read-only, no text input session). OK starts
   editing and opens the keyboard. Otherwise the system keyboard reappears every time the bar gets
   focus from the page. When editing starts, the URL is selected again after a short delay, because
