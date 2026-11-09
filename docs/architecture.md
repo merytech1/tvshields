@@ -238,6 +238,22 @@ ListUpdateWorker (WorkManager, every 24 h, requires network)
   ──► atomic instance swap ──► serialize
 ```
 
+`EngineRepository` loads the engine on a background thread when the app starts. `engine.dat`
+starts with a header: a magic value, a format version and a fingerprint of the stored lists
+(their URLs, sizes and `ETag` / `Last-Modified`). The cache is used only if the header matches
+and adblock-rust accepts the data (it rejects data from another crate version). Otherwise the
+engine is built from the lists and the cache is written again.
+
+Measured on the reference TV (2026-11-09, default lists, 9 MB of text, debug build):
+
+| Launch | Engine ready in |
+|---|---|
+| First (download + build + save) | ~9.7 s |
+| Build from stored lists | ~4.7 s |
+| From `engine.dat` (10 MB) | ~0.76 s |
+
+The engine loads in parallel with the UI and does not delay the first screen.
+
 **Default lists** (those Brave enables by default, taken from its `list_catalog.json`):
 Brave Default Adblock Filters (uBO + EasyList + Brave lists incl. SugarCoat), Brave Default
 Privacy Filters (EasyPrivacy + uBO privacy), Brave First Party Filters, Cookie notice blocker,

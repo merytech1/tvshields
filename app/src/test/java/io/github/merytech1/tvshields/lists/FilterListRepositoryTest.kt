@@ -130,6 +130,21 @@ class FilterListRepositoryTest {
     }
 
     @Test
+    fun `fingerprint changes only when a list is downloaded again`() = runBlocking {
+        served["/a.txt"] = Served("||ads.example^", "\"a1\"", null)
+        served["/b.txt"] = Served("##.banner", "\"b1\"", null)
+        repository().update()
+        val first = repository().fingerprint()
+
+        repository().update()
+        assertTrue(first.contentEquals(repository().fingerprint()))
+
+        served["/a.txt"] = Served("||ads.example^\n||more.example^", "\"a2\"", null)
+        repository().update()
+        assertFalse(first.contentEquals(repository().fingerprint()))
+    }
+
+    @Test
     fun `default catalog has no duplicate or insecure urls`() {
         val urls = DefaultLists.all.flatMap { it.sources }.map { it.url }
         assertEquals(urls.size, urls.toSet().size)

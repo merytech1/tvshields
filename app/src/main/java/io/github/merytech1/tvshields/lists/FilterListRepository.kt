@@ -1,5 +1,6 @@
 package io.github.merytech1.tvshields.lists
 
+import io.github.merytech1.tvshields.util.writeAtomically
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -21,6 +22,15 @@ data class UpdateResult(
     val changed get() = downloaded.isNotEmpty()
 }
 
+/** The stored filter lists, as the engine cache needs them. */
+interface FilterListStore {
+    suspend fun update(): UpdateResult
+
+    suspend fun storedLists(): List<String>
+
+    suspend fun fingerprint(): ByteArray
+}
+
 /**
  * Downloads filter lists into [dir] (filesDir/lists, architecture §8) and keeps them up to date.
  *
@@ -31,13 +41,13 @@ data class UpdateResult(
 class FilterListRepository(
     private val dir: File,
     private val lists: List<FilterList> = DefaultLists.all,
-) {
+) : FilterListStore {
     private val mutex = Mutex()
 
     private val sources get() = lists.flatMap { it.sources }.distinctBy { it.url }
 
     /** Checks every source once. Never throws for network errors: they end up in [UpdateResult.failed]. */
-    suspend fun update(): UpdateResult = mutex.withLock {
+    override suspend fun update(): UpdateResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             dir.mkdirs()
             val downloaded = mutableListOf<String>()
@@ -55,8 +65,24 @@ class FilterListRepository(
     }
 
     /** Texts of every stored list, in catalog order; sources never downloaded are skipped. */
-    suspend fun storedLists(): List<String> = withContext(Dispatchers.IO) {
+    override suspend fun storedLists(): List<String> = withContext(Dispatchers.IO) {
         sources.map { listFile(it.url) }.filter { it.isFile }.map { it.readText() }
+    }
+
+    /**
+     * Identifies the stored lists without reading them: changes whenever a list is downloaded
+     * again (new `ETag` / `Last-Modified` or size). Lets a cached engine tell if it is stale.
+     */
+    override suspend fun fingerprint(): ByteArray = withContext(Dispatchers.IO) {
+        val digest = MessageDigest.getInstance("SHA-256")
+        for (source in sources) {
+            val list = listFile(source.url)
+            if (!list.isFile) continue
+            digest.update(source.url.toByteArray())
+            digest.update(list.length().toString().toByteArray())
+            metaFile(source.url).takeIf { it.isFile }?.let { digest.update(it.readBytes()) }
+        }
+        digest.digest()
     }
 
     private enum class Fetch { DOWNLOADED, UNCHANGED, FAILED }
@@ -85,7 +111,7 @@ class FilterListRepository(
                         if (bytes.size > MAX_LIST_BYTES) return Fetch.FAILED
                         bytes
                     }
-                    writeAtomically(list, body)
+                    list.writeAtomically(body)
                     writeMeta(metaFile, connection.getHeaderField("ETag"), connection.getHeaderField("Last-Modified"))
                     Fetch.DOWNLOADED
                 }
@@ -115,16 +141,7 @@ class FilterListRepository(
         etag?.let { props.setProperty(ETAG, it) }
         lastModified?.let { props.setProperty(LAST_MODIFIED, it) }
         val bytes = java.io.ByteArrayOutputStream().also { props.store(it, null) }.toByteArray()
-        writeAtomically(file, bytes)
-    }
-
-    private fun writeAtomically(target: File, bytes: ByteArray) {
-        val tmp = File(target.parentFile, "${target.name}.tmp")
-        tmp.writeBytes(bytes)
-        if (!tmp.renameTo(target)) {
-            target.delete()
-            if (!tmp.renameTo(target)) throw IOException("Cannot replace $target")
-        }
+        file.writeAtomically(bytes)
     }
 
     private companion object {
