@@ -275,6 +275,25 @@ Measured on the reference TV (2026-11-09, default lists, 9 MB of text, debug bui
 
 The engine loads in parallel with the UI and does not delay the first screen.
 
+**First launch (rules C1).** `EngineLoader` tracks the engine status for the UI:
+
+| Status | When | Screen |
+|---|---|---|
+| `Loading` | Lists are stored: load from cache or build | Browser (requests pass until the engine is ready, < 1 s) |
+| `Downloading` | No lists stored yet | "Getting Shields ready", progress per catalog entry ("3 of 5 lists") |
+| `NoLists` | The download got no list | "No connection": *Try again* / *Continue without protection* |
+| `Ready` | Engine loaded | Browser |
+| `Unprotected` | The user continued without lists, or the native engine failed | Browser, no blocking |
+
+Whether lists are stored is checked synchronously when the app starts, so a normal launch never
+flashes the first-launch screen. Without lists the question comes back on the next launch.
+A partial download (some sources failed) still builds an engine from what arrived.
+
+To try the no-connection screen on the TV without cutting its network, put a file where the lists
+folder goes: `adb shell pm clear <app>`, then `run-as <app> mkdir files` and
+`run-as <app> touch files/lists`. No list can be saved, so the download fails. A global
+`http_proxy` does not work: the list downloads ignore it.
+
 **Default lists** (those Brave enables by default, taken from its `list_catalog.json`):
 Brave Default Adblock Filters (uBO + EasyList + Brave lists incl. SugarCoat), Brave Default
 Privacy Filters (EasyPrivacy + uBO privacy), Brave First Party Filters, Cookie notice blocker,

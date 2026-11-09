@@ -24,7 +24,11 @@ data class UpdateResult(
 
 /** The stored filter lists, as the engine cache needs them. */
 interface FilterListStore {
-    suspend fun update(): UpdateResult
+    /** [onProgress] gets (catalog entries done, total) after each entry. */
+    suspend fun update(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): UpdateResult
+
+    /** Quick check (no reading) for at least one stored list. */
+    fun hasStoredLists(): Boolean
 
     suspend fun storedLists(): List<String>
 
@@ -47,22 +51,29 @@ class FilterListRepository(
     private val sources get() = lists.flatMap { it.sources }.distinctBy { it.url }
 
     /** Checks every source once. Never throws for network errors: they end up in [UpdateResult.failed]. */
-    override suspend fun update(): UpdateResult = mutex.withLock {
+    override suspend fun update(onProgress: (done: Int, total: Int) -> Unit): UpdateResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             dir.mkdirs()
             val downloaded = mutableListOf<String>()
             val unchanged = mutableListOf<String>()
             val failed = mutableListOf<String>()
-            for (source in sources) {
-                when (fetch(source.url)) {
-                    Fetch.DOWNLOADED -> downloaded += source.url
-                    Fetch.UNCHANGED -> unchanged += source.url
-                    Fetch.FAILED -> failed += source.url
+            val seen = mutableSetOf<String>()
+            lists.forEachIndexed { index, list ->
+                for (source in list.sources) {
+                    if (!seen.add(source.url)) continue
+                    when (fetch(source.url)) {
+                        Fetch.DOWNLOADED -> downloaded += source.url
+                        Fetch.UNCHANGED -> unchanged += source.url
+                        Fetch.FAILED -> failed += source.url
+                    }
                 }
+                onProgress(index + 1, lists.size)
             }
             UpdateResult(downloaded, unchanged, failed)
         }
     }
+
+    override fun hasStoredLists(): Boolean = sources.any { listFile(it.url).isFile }
 
     /** Texts of every stored list, in catalog order; sources never downloaded are skipped. */
     override suspend fun storedLists(): List<String> = withContext(Dispatchers.IO) {

@@ -11,6 +11,6 @@ class TvShieldsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        container.loadEngine()
+        container.engineLoader.start()
     }
 }
