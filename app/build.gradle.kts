@@ -14,6 +14,8 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         // rules.md T3: only the ABIs the engine is built for.
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -48,4 +50,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

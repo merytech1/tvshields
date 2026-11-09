@@ -32,7 +32,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | 2.2 | Full-screen WebView + address bar | Navigates to a URL typed with the TV keyboard | ✅ |
 | 2.3 | Virtual cursor and arrow-key scrolling | Links on any page can be clicked using only the remote | ✅ |
 | 2.4 | Back, reload, home | Basic navigation fully usable with the remote | ✅ |
-| 2.5 | Load the `.so` from Kotlin (JNI smoke test) | An instrumented test calls the engine and gets a result | ⬜ |
+| 2.5 | Load the `.so` from Kotlin (JNI smoke test) | An instrumented test calls the engine and gets a result | ✅ |
 
 ## Phase 3 — Shields: network blocking (1.1)
 
