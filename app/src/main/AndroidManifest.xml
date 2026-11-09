@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- TV-only app: listed in the Android TV launcher, no touchscreen needed. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature
         android:name="android.software.leanback"
         android:required="true" />
@@ -16,7 +18,8 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TvShields">
+        android:theme="@style/Theme.TvShields"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
