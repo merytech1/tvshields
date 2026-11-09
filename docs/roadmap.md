@@ -38,7 +38,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 
 | # | Task | Done when | Status |
 |---|---|---|---|
-| 3.1 | `FilterListRepository`: download the default catalog, storage, ETag | Test with a fake server: downloads, does not re-download if unchanged | ⬜ |
+| 3.1 | `FilterListRepository`: download the default catalog, storage, ETag | Test with a fake server: downloads, does not re-download if unchanged | ✅ |
 | 3.2 | Engine build + `engine.dat` (T8) | The second launch loads from cache; time measured on the TV | ⬜ |
 | 3.3 | `RequestTypeGuesser` | Unit tests for every rule in architecture §5.1 | ⬜ |
 | 3.4 | `shouldInterceptRequest` → engine → block/allow | Test page with known ads: requests blocked | ⬜ |

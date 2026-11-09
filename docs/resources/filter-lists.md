@@ -24,8 +24,18 @@ Catalog entries with `default_enabled: true` (checked on 2026-11-07):
 
 **Excluded:** "Brave iOS-Specific Filters", which is iOS-only.
 
-> When implementing roadmap 3.1, the exact URL list is taken from the current catalog and pinned in
-> code with a date. The sources of each entry can change.
+The exact URLs (30 sources) are pinned in `lists/DefaultLists.kt` from the catalog of
+**2026-11-09** (`CATALOG_DATE`). The sources of each entry can change, so re-check the catalog
+when updating them. On that date every source answered with an `ETag`; EasyList, EasyPrivacy,
+URLhaus and the Fanboy lists also send `Last-Modified`.
+
+## Storage
+
+`FilterListRepository` keeps each source in `filesDir/lists/` as `<hash>.txt` (the list) and
+`<hash>.meta` (its `ETag` / `Last-Modified`). The hash is a short SHA-256 of the URL. An update
+sends `If-None-Match` / `If-Modified-Since`, so an unchanged list costs a 304 and no download.
+A source that fails keeps its previous copy. Files are written to a temporary file and renamed, so
+a list is never left half written. Responses over 16 MB are rejected.
 
 ## Optional (in Settings)
 
