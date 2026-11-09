@@ -16,7 +16,11 @@ data class BrowserUiState(
     val currentUrl: String = "",
     /** 0–100 while a page loads, null otherwise. */
     val progress: Int? = null,
+    val canGoBack: Boolean = false,
 )
+
+/** What the WebView shows for the start page; the screen draws the start page over it. */
+const val HOME_URL = "about:blank"
 
 /** Browser screen state. Holds no WebView: the screen applies [loads] and reports page events back. */
 class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel() {
@@ -35,11 +39,23 @@ class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel()
         return true
     }
 
-    fun onPageStarted(url: String) = _state.update { it.copy(currentUrl = url, progress = 0) }
+    /** Goes to the start page. It stays in the history, so Back returns to the page left. */
+    fun onHome() {
+        _state.update { it.copy(currentUrl = "", progress = null) }
+        _loads.trySend(HOME_URL)
+    }
+
+    fun onPageStarted(url: String) = _state.update {
+        if (url == HOME_URL) it.copy(currentUrl = "", progress = null) else it.copy(currentUrl = url, progress = 0)
+    }
 
     fun onProgress(progress: Int) = _state.update { if (it.progress == null) it else it.copy(progress = progress) }
 
-    fun onPageFinished(url: String) = _state.update { it.copy(currentUrl = url, progress = null) }
+    fun onPageFinished(url: String) = _state.update {
+        it.copy(currentUrl = if (url == HOME_URL) "" else url, progress = null)
+    }
+
+    fun onHistoryChanged(canGoBack: Boolean) = _state.update { it.copy(canGoBack = canGoBack) }
 
     companion object {
         fun factory(searchResolver: SearchResolver) = viewModelFactory {

@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.view.KeyEvent
 import android.view.ViewConfiguration
+import android.view.inputmethod.InputMethodManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -79,7 +80,12 @@ fun BrowserScreen(viewModel: BrowserViewModel) {
     DisposableEffect(webView) {
         webView.setOnFocusChangeListener { _, focused ->
             webViewFocused = focused
-            if (!focused) cursor.releaseAll()
+            if (!focused) {
+                cursor.releaseAll()
+                // A keyboard opened by a page field would otherwise stay over the top bar.
+                context.getSystemService(InputMethodManager::class.java)
+                    .hideSoftInputFromWindow(webView.windowToken, 0)
+            }
         }
         webView.keyHandler = { event ->
             handleKey(event.keyCode, event, cursor, webView, okPress,
@@ -105,7 +111,8 @@ fun BrowserScreen(viewModel: BrowserViewModel) {
     LaunchedEffect(webView) {
         viewModel.loads.collect { url ->
             webView.loadUrl(url)
-            webView.requestFocus()
+            // The start page has nothing to point at: focus goes to the address bar.
+            if (url == HOME_URL) addressFocus.requestFocus() else webView.requestFocus()
         }
     }
     // Moves the cursor once per frame while an arrow is held; each new press restarts the loop.
@@ -122,11 +129,13 @@ fun BrowserScreen(viewModel: BrowserViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        AddressBar(
-            currentUrl = state.currentUrl,
-            progress = state.progress,
-            focusRequester = addressFocus,
+        TopBar(
+            state = state,
+            addressFocus = addressFocus,
             onSubmit = viewModel::onAddressSubmit,
+            onBack = { if (webView.canGoBack()) webView.goBack() },
+            onReload = webView::reload,
+            onHome = viewModel::onHome,
             // Overscan safe area: 48 dp sides, 27 dp top (design.md §5). Drawn after the WebView
             // (zIndex): on the reference TV the WebView paints its background outside its bounds.
             modifier = Modifier
@@ -136,6 +145,10 @@ fun BrowserScreen(viewModel: BrowserViewModel) {
                 .onPreviewKeyEvent {
                     when (it.key) {
                         Key.DirectionUp -> true
+                        // Back still means the previous page; with no history it leaves the app.
+                        Key.Back -> state.canGoBack.also { back ->
+                            if (back && it.type == KeyEventType.KeyUp) webView.goBack()
+                        }
                         Key.DirectionDown -> it.type == KeyEventType.KeyDown &&
                             state.currentUrl.isNotEmpty() && webView.requestFocus()
                         else -> false
@@ -240,6 +253,8 @@ private fun createWebView(
     webViewClient = object : WebViewClient() {
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) = viewModel.onPageStarted(url)
         override fun onPageFinished(view: WebView, url: String) = viewModel.onPageFinished(url)
+        override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) =
+            viewModel.onHistoryChanged(view.canGoBack())
     }
     webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) = viewModel.onProgress(newProgress)

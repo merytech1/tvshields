@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -29,6 +30,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -44,7 +46,7 @@ import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 private const val SETTLE_MS = 250L
 
 /**
- * Top bar with the address field (design.md, mockups "Browser" and "Address bar").
+ * The address field of the top bar (design.md, mockups "Browser" and "Address bar").
  * Shows the short URL; on focus it switches to the full URL, all selected. OK opens the keyboard
  * to type over it.
  */
@@ -58,6 +60,7 @@ fun AddressBar(
 ) {
     val colors = LocalTvShieldsColors.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     var focused by remember { mutableStateOf(false) }
     // Focus alone only shows the URL; OK starts editing. While read-only there is no text input
     // session, so the system cannot bring the keyboard back over the page on its own.
@@ -65,7 +68,12 @@ fun AddressBar(
     var value by remember { mutableStateOf(TextFieldValue(displayUrl(currentUrl))) }
 
     LaunchedEffect(currentUrl, focused) {
-        if (!focused) value = TextFieldValue(displayUrl(currentUrl))
+        value = when {
+            !focused -> TextFieldValue(displayUrl(currentUrl))
+            // The page changed under a focused bar (Back, Home): show the new URL, selected.
+            !editing -> TextFieldValue(currentUrl, TextRange(0, currentUrl.length))
+            else -> value
+        }
     }
     LaunchedEffect(editing) {
         if (!editing) return@LaunchedEffect
@@ -77,11 +85,7 @@ fun AddressBar(
         value = value.copy(selection = TextRange(0, value.text.length), composition = null)
     }
 
-    Column(
-        modifier = modifier
-            .background(colors.surface, RoundedCornerShape(8.dp))
-            .padding(8.dp),
-    ) {
+    Column(modifier = modifier) {
         BasicTextField(
             value = value,
             onValueChange = { value = it },
@@ -113,10 +117,23 @@ fun AddressBar(
                     focused = it.isFocused
                 }
                 .onPreviewKeyEvent {
-                    val ok = it.key == Key.DirectionCenter || it.key == Key.Enter || it.key == Key.NumPadEnter
-                    if (!ok || editing) return@onPreviewKeyEvent false
-                    if (it.type == KeyEventType.KeyUp) editing = true
-                    true
+                    if (editing) return@onPreviewKeyEvent false
+                    when (it.key) {
+                        Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
+                            if (it.type == KeyEventType.KeyUp) editing = true
+                            true
+                        }
+                        // While not editing, Left and Right move between bar buttons, not the text cursor.
+                        Key.DirectionLeft, Key.DirectionRight -> {
+                            if (it.type == KeyEventType.KeyDown) {
+                                focusManager.moveFocus(
+                                    if (it.key == Key.DirectionLeft) FocusDirection.Left else FocusDirection.Right,
+                                )
+                            }
+                            true
+                        }
+                        else -> false
+                    }
                 }
                 // Focus ring: 3 dp accent, 2 dp gap (design.md §6).
                 .border(3.dp, if (focused) colors.accent else Color.Transparent, RoundedCornerShape(13.dp))
