@@ -249,6 +249,23 @@ Mobile app promo blocker. Regional and "annoyances" lists are optional in Settin
 - **Virtual cursor**: an overlay on top of the WebView draws a pointer. The arrows move it (with
   acceleration) and OK generates a touch `MotionEvent` at that position. At the edges, the cursor
   scrolls the page.
+  - Keys reach the cursor through `TvWebView.dispatchKeyEvent`: the WebView consumes arrows
+    before any `OnKeyListener`.
+  - Each press moves the cursor a fixed step (16 px), so short taps aim precisely; held keys
+    accelerate. A press against an edge scrolls 160 px.
+  - Scrolling sends mouse-wheel `MotionEvent`s (`ACTION_SCROLL`), which also scroll inner panels.
+  - Pushing up when the page cannot scroll further up goes to the address bar; Down goes back
+    to the page.
+  - The cursor stays a pointer's size away from the right and bottom edges, so it never hides
+    off screen.
+  - OK goes to the page as a tap on release. A held OK (the remote repeats it) goes to the address
+    bar. The press duration alone is not enough: `adb input keyevent --longpress` reports a zero
+    duration.
+- **Address bar focus**: focus only shows the URL (read-only, no text input session). OK starts
+  editing and opens the keyboard. Otherwise the system keyboard reappears every time the bar gets
+  focus from the page. When editing starts, the URL is selected again after a short delay, because
+  Gboard moves the cursor to the end at session start and typing would append to the URL.
+  - The movement logic (`CursorController`) is plain Kotlin with unit tests.
 - **Shortcuts**: Back = previous page (or exit the current mode), Menu/long-press OK = address bar
   and Shields panel.
 - **On-screen keyboard**: the system IME of the TV, for the address bar.
