@@ -18,7 +18,10 @@ class EngineCacheTest {
     private val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "engine-test.dat")
 
     private val lists = object : FilterListStore {
-        override suspend fun update() = UpdateResult(emptyList(), emptyList(), emptyList())
+        override suspend fun update(onProgress: (done: Int, total: Int) -> Unit) =
+            UpdateResult(emptyList(), emptyList(), emptyList())
+
+        override fun hasStoredLists() = true
         override suspend fun storedLists() = listOf("||ads.example.com^", "@@||ads.example.com/ok.js")
         override suspend fun fingerprint() = ByteArray(32) { 7 }
     }

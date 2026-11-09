@@ -7,4 +7,11 @@
     <string name="action_reload">Reload</string>
     <string name="action_home">Home</string>
     <string name="shields_blocked_page">Shields blocked this page: %s</string>
+    <string name="first_launch_title">Getting Shields ready</string>
+    <string name="first_launch_message">Downloading filter lists. This happens once and takes a few seconds.</string>
+    <string name="first_launch_progress">%1$d of %2$d lists</string>
+    <string name="no_connection_title">No connection</string>
+    <string name="no_connection_message">Shields have no lists yet. Connect to the internet, or continue without protection.</string>
+    <string name="action_try_again">Try again</string>
+    <string name="action_continue_unprotected">Continue without protection</string>
 </resources>

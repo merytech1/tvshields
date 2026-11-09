@@ -2,7 +2,7 @@ package io.github.merytech1.tvshields
 
 import android.content.Context
 import android.util.Log
-import io.github.merytech1.tvshields.engine.AdblockEngine
+import io.github.merytech1.tvshields.engine.EngineLoader
 import io.github.merytech1.tvshields.engine.EngineRepository
 import io.github.merytech1.tvshields.engine.NativeAdblockEngine
 import io.github.merytech1.tvshields.lists.FilterListRepository
@@ -12,10 +12,6 @@ import io.github.merytech1.tvshields.shields.ShieldsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.io.File
 
 /**
@@ -34,29 +30,14 @@ class AppContainer(val context: Context) {
 
     val engines = EngineRepository(File(context.filesDir, "engine.dat"), filterLists, NativeAdblockEngine)
 
-    private val _engine = MutableStateFlow<AdblockEngine?>(null)
+    val engineLoader = EngineLoader(
+        repository = engines,
+        hasStoredLists = filterLists::hasStoredLists,
+        scope = appScope,
+        log = { Log.i(TAG, it) },
+    )
 
-    /** The blocking engine, null until loaded (or while there are no lists, rules C1). */
-    val engine: StateFlow<AdblockEngine?> = _engine.asStateFlow()
-
-    val shields = ShieldsManager { _engine.value }
-
-    fun loadEngine() {
-        appScope.launch {
-            val loaded = try {
-                engines.load()
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "Engine load failed", e)
-                null
-            }
-            if (loaded == null) {
-                Log.w(TAG, "No filter lists available; Shields have no rules")
-                return@launch
-            }
-            Log.i(TAG, "Engine ${loaded.source.name.lowercase()} in ${loaded.millis} ms")
-            _engine.value = loaded.engine
-        }
-    }
+    val shields = ShieldsManager { engineLoader.engine.value }
 
     private companion object {
         const val TAG = "tvshields.engine"

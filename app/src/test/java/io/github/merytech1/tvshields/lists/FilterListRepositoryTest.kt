@@ -145,6 +145,28 @@ class FilterListRepositoryTest {
     }
 
     @Test
+    fun `update reports progress per catalog entry`() = runBlocking {
+        served["/a.txt"] = Served("||ads.example^", "\"a1\"", null)
+        served["/b.txt"] = Served("##.banner", "\"b1\"", null)
+        val repository = FilterListRepository(
+            dir = tmp.root.resolve("lists"),
+            lists = listOf(
+                FilterList("a", "List A", listOf(ListSource(url("/a.txt"), "A"))),
+                FilterList("b", "List B", listOf(ListSource(url("/b.txt"), "B"), ListSource(url("/a.txt"), "A again"))),
+            ),
+        )
+        val progress = mutableListOf<Pair<Int, Int>>()
+        assertFalse(repository.hasStoredLists())
+
+        val result = repository.update { done, total -> progress += done to total }
+
+        assertEquals(listOf(1 to 2, 2 to 2), progress)
+        // A source shared by two entries is fetched once.
+        assertEquals(2, result.downloaded.size)
+        assertTrue(repository.hasStoredLists())
+    }
+
+    @Test
     fun `default catalog has no duplicate or insecure urls`() {
         val urls = DefaultLists.all.flatMap { it.sources }.map { it.url }
         assertEquals(urls.size, urls.toSet().size)

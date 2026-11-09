@@ -31,16 +31,17 @@ class EngineRepository(
 
     /**
      * Loads the engine from the cache, or builds it from the stored lists. With no lists stored,
-     * downloads them first. Returns null if there are still no lists (offline first launch, rules C1).
+     * downloads them first, reporting [onProgress]. Returns null if there are still no lists
+     * (offline first launch, rules C1).
      */
-    suspend fun load(): LoadedEngine? = mutex.withLock {
+    suspend fun load(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): LoadedEngine? = mutex.withLock {
         withContext(Dispatchers.IO) {
             val start = System.nanoTime()
             readCache(lists.fingerprint())?.let { return@withContext LoadedEngine(it, LoadedEngine.Source.CACHE, since(start)) }
 
             var texts = lists.storedLists()
             if (texts.isEmpty()) {
-                lists.update()
+                lists.update(onProgress)
                 texts = lists.storedLists()
             }
             if (texts.isEmpty()) return@withContext null
