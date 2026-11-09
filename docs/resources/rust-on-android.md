@@ -68,7 +68,12 @@ The bridge lives in `engine/src/jni_bridge.rs` (compiled for Android only) on to
   (for `nativeCheckRequest`, allow the request).
 - **Local references are freed per array element**, because Android allows at most 512 per call.
 
-Kotlin side (written in roadmap 2.5):
+Kotlin side (`app/src/main/java/io/github/merytech1/tvshields/engine/NativeEngine.kt`, roadmap
+2.5). An R8 keep rule in `app/proguard-rules.pro` preserves the class and its native methods in
+release builds. The instrumented test `NativeEngineTest` loads the library on the device and
+covers block, allow, cosmetic resources, serialization and an unknown handle. It passed on the
+reference TV (`armeabi-v7a`) on 2026-11-09. The `arm64-v8a` library is packaged, but no 64-bit
+device has run it yet.
 
 ```kotlin
 package io.github.merytech1.tvshields.engine

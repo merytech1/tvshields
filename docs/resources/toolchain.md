@@ -97,5 +97,11 @@ Build the engine first (`engine/build-android.sh`), then the APK, then install i
 adb -s 192.168.1.13:5555 install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Run the instrumented tests (JNI smoke test) on the TV:
+
+```bash
+ANDROID_SERIAL=192.168.1.13:5555 ./gradlew :app:connectedDebugAndroidTest
+```
+
 On the reference TV, `adb exec-out screencap -p` prints vendor log lines before the PNG data;
 strip everything before the `\x89PNG` header to get a valid image.
