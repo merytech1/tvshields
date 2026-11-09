@@ -156,11 +156,19 @@ engine.check_network_request(Request::new(url, source, type, method))
 
 **Request type.** The WebView does not report it. `RequestTypeGuesser` infers it, in this order:
 1. `request.isForMainFrame` → `document`.
-2. `Accept` header: `text/css` → `stylesheet`, `image/*` → `image`, `text/html` → `sub_frame`.
-3. URL extension: `.js`/`.mjs` → `script`, `.css`, images, `.mp4/.m3u8/.mpd/.ts` → `media`, fonts → `font`.
+2. First type in the `Accept` header: `text/css` → `stylesheet`, `image/…` → `image`,
+   `text/html` → `sub_frame`. Only the first type counts: a page's `Accept` lists image types too.
+3. Extension of the URL path (never the host or query): `.js`/`.mjs` → `script`, `.css` →
+   `stylesheet`, images (`png`, `jpg`, `gif`, `webp`, `avif`, `svg`…) → `image`, `mp4`, `m4s`,
+   `webm`, `m3u8`, `mpd`, `ts`, `mp3`… → `media`, `woff`/`woff2`/`ttf`/`otf`/`eot` → `font`.
 4. If nothing matches → `other`.
 
-Known limitation: XHR/fetch cannot be reliably distinguished (`xmlhttprequest` → `other`).
+Checked on the reference TV (2026-11-09): the WebView passes `Accept` to `shouldInterceptRequest`.
+Stylesheets send `text/css,*/*;q=0.1`, images `image/jxl,image/avif,…`, iframes `text/html,…`;
+scripts, fonts and XHR/fetch send `*/*`, so they rely on the extension.
+
+Known limitation: XHR/fetch cannot be reliably distinguished (`xmlhttprequest` → `other`). Nor can
+scripts without a `.js` extension (e.g. `gtag/js?id=…`).
 
 **Source URL (`source`).** The URL of the main document, recorded in
 `onPageStarted`/`doUpdateVisitedHistory`. Iframe resources are evaluated against the main
