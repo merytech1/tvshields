@@ -2,6 +2,8 @@ package io.github.merytech1.tvshields.shields
 
 import io.github.merytech1.tvshields.engine.AdblockEngine
 import io.github.merytech1.tvshields.engine.NetworkDecision
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -127,5 +129,66 @@ class CosmeticFilterTest {
         val filter = CosmeticFilter { FakeEngine(fails = true) }
 
         assertEquals(emptyList<String>(), filter.hiddenSelectors(listOf("ad"), emptyList(), emptyList()))
+    }
+
+    @Test
+    fun `moves raw procedural selectors out of the css`() {
+        val filter = CosmeticFilter {
+            FakeEngine(
+                """{"hide_selectors":[".ad","a[role=\"button\"]:has(p:has-text(Sponsored))"]}""",
+            )
+        }
+
+        val resources = filter.resourcesFor(page)!!
+        assertEquals(".ad { display: none !important; }", resources.css)
+
+        val procedural = JSONArray(resources.procedural!!)
+        assertEquals(1, procedural.length())
+        val operators = procedural.getJSONObject(0).getJSONArray("selector")
+        assertEquals(2, operators.length())
+        assertEquals("css-selector", operators.getJSONObject(0).getString("type"))
+        assertEquals("has", operators.getJSONObject(1).getString("type"))
+    }
+
+    @Test
+    fun `validates procedural actions from the engine`() {
+        val valid = """{"selector":[{"type":"css-selector","arg":".x"}],"action":{"type":"remove"}}"""
+        val invalid = """{"selector":[{"type":"unknown","arg":".y"}]}"""
+        val json = JSONObject()
+            .put("hide_selectors", JSONArray())
+            .put("procedural_actions", JSONArray().put(valid).put("not json").put(invalid))
+            .toString()
+        val filter = CosmeticFilter { FakeEngine(json) }
+
+        val procedural = JSONArray(filter.resourcesFor(page)!!.procedural!!)
+        assertEquals(1, procedural.length())
+        assertEquals(
+            ".x",
+            procedural.getJSONObject(0).getJSONArray("selector").getJSONObject(0).getString("arg"),
+        )
+    }
+
+    @Test
+    fun `drops a malformed raw selector without losing the plain css`() {
+        val filter = CosmeticFilter {
+            FakeEngine("""{"hide_selectors":[".keep",":has-text(unterminated"]}""")
+        }
+
+        val resources = filter.resourcesFor(page)!!
+        assertEquals(".keep { display: none !important; }", resources.css)
+        assertNull(resources.procedural)
+    }
+
+    @Test
+    fun `caps the number of procedural filters`() {
+        val actions = JSONArray()
+        repeat(40) { index ->
+            actions.put("""{"selector":[{"type":"css-selector","arg":".ad-$index"}]}""")
+        }
+        val filter = CosmeticFilter {
+            FakeEngine(JSONObject().put("hide_selectors", JSONArray()).put("procedural_actions", actions).toString())
+        }
+
+        assertEquals(32, JSONArray(filter.resourcesFor(page)!!.procedural!!).length())
     }
 }

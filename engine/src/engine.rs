@@ -255,6 +255,125 @@ mod tests {
         assert!(!res.generichide);
     }
 
+    /// `procedural_actions` entries are JSON strings; this keeps the assertions readable.
+    fn procedural_filters(res: &UrlSpecificResources) -> Vec<serde_json::Value> {
+        res.procedural_actions
+            .iter()
+            .map(|action| serde_json::from_str(action).expect("procedural action is JSON"))
+            .collect()
+    }
+
+    #[test]
+    fn procedural_operators_and_actions_are_structured() {
+        let e = engine(concat!(
+            "news.example.com#?#div.sponsor:has-text(Sponsored):upward(2):remove()\n",
+            "news.example.com#?#.ad:style(margin: 0 !important)\n",
+            "news.example.com#?#.track:remove-attr(onclick)\n",
+            "news.example.com#?#.tag:remove-class(ad)\n",
+            "news.example.com#?#.css:matches-css(display: block)\n",
+            "news.example.com#?#.attr:matches-attr(data-ad)\n",
+            "news.example.com#?#.text:min-text-length(10)\n",
+            "news.example.com#?#.path:matches-path(/article/)\n",
+            "news.example.com#?#.xp:xpath(//div)\n",
+        ));
+        let res = e.url_cosmetic_resources(PAGE);
+        assert!(res.hide_selectors.is_empty(), "{:?}", res.hide_selectors);
+
+        let filters = procedural_filters(&res);
+        assert_eq!(filters.len(), 9, "{filters:?}");
+
+        let by_action = |action: &str| {
+            filters
+                .iter()
+                .find(|filter| filter["action"]["type"] == action)
+                .unwrap_or_else(|| panic!("missing action {action}: {filters:?}"))
+        };
+
+        assert_eq!(
+            by_action("remove")["selector"],
+            serde_json::json!([
+                {"type": "css-selector", "arg": "div.sponsor"},
+                {"type": "has-text", "arg": "Sponsored"},
+                {"type": "upward", "arg": "2"},
+            ])
+        );
+        assert_eq!(by_action("style")["action"]["arg"], "margin: 0 !important");
+        assert_eq!(by_action("remove-attr")["action"]["arg"], "onclick");
+        assert_eq!(by_action("remove-class")["action"]["arg"], "ad");
+
+        for (selector, operator) in [
+            (".css", "matches-css"),
+            (".attr", "matches-attr"),
+            (".text", "min-text-length"),
+            (".path", "matches-path"),
+            (".xp", "xpath"),
+        ] {
+            let filter = filters
+                .iter()
+                .find(|filter| filter["selector"][1]["type"] == operator)
+                .unwrap_or_else(|| panic!("missing {operator}: {filters:?}"));
+            assert_eq!(filter["selector"][0], serde_json::json!({"type": "css-selector", "arg": selector}));
+            assert!(filter.get("action").is_none(), "{filter}");
+        }
+    }
+
+    #[test]
+    fn nested_procedural_has_is_reported_as_raw_selector() {
+        // adblock-rust cannot split `:has(...:has-text(...))`; it stays as a raw selector and our
+        // JS parser handles it (roadmap 4.3).
+        let e = ShieldsEngine::from_lists([concat!(
+            "deliveroo.*#?#a[role=\"button\"]:has(p:has-text(Sponsored))\n",
+            "deliveroo.*#?#.promo:has-text(Sponsored)\n",
+        )]);
+        let res = e.url_cosmetic_resources("https://deliveroo.co.uk/menu");
+
+        assert_eq!(procedural_filters(&res).len(), 1, "{res:?}");
+        assert!(
+            res.hide_selectors
+                .contains("a[role=\"button\"]:has(p:has-text(Sponsored))"),
+            "{:?}",
+            res.hide_selectors
+        );
+    }
+
+    #[test]
+    fn nested_procedural_has_with_action_is_reported_as_raw_selector() {
+        let e = ShieldsEngine::from_lists([concat!(
+            "deliveroo.*#?#a[role=\"button\"]:has(p:has-text(Sponsored)):remove()\n",
+            "deliveroo.*#?#div.x:not(:has-text(Skip))\n",
+        )]);
+        let res = e.url_cosmetic_resources("https://deliveroo.co.uk/menu");
+
+        let filters = procedural_filters(&res);
+        assert_eq!(filters.len(), 1, "{filters:?}");
+        assert_eq!(filters[0]["action"]["type"], "remove");
+        assert_eq!(
+            filters[0]["selector"],
+            serde_json::json!([{
+                "type": "css-selector",
+                "arg": "a[role=\"button\"]:has(p:has-text(Sponsored))"
+            }])
+        );
+        assert!(
+            res.hide_selectors.contains("div.x:not(:has-text(Skip))"),
+            "{:?}",
+            res.hide_selectors
+        );
+    }
+
+    #[test]
+    fn invalid_css_selectors_are_dropped() {
+        let e = engine("news.example.com##.ad[\nnews.example.com##.valid");
+        let res = e.url_cosmetic_resources(PAGE);
+
+        assert!(res.hide_selectors.contains(".valid"), "{:?}", res.hide_selectors);
+        assert!(
+            !res.hide_selectors.iter().any(|selector| selector.contains(".ad[")),
+            "{:?}",
+            res.hide_selectors
+        );
+    }
+
     #[test]
     fn cosmetic_generic_rules_match_classes_and_ids() {
         let e = engine("##.ad-banner\n###sidebar-ad");
@@ -298,7 +417,10 @@ mod tests {
 
     #[test]
     fn serialization_round_trip_keeps_rules() {
-        let original = engine("||ads.example.net^\n@@||ads.example.net/allowed/*\n##.ad-banner");
+        let original = engine(
+            "||ads.example.net^\n@@||ads.example.net/allowed/*\n##.ad-banner\nnews.example.com#?#.x:has-text(Ad)",
+        );
+        let procedural = original.url_cosmetic_resources(PAGE).procedural_actions;
         let bytes = original.serialize();
         let restored = ShieldsEngine::from_serialized(&bytes).unwrap();
 
@@ -310,6 +432,7 @@ mod tests {
         assert_eq!(excepted, NetworkDecision::Allow);
 
         let res = restored.url_cosmetic_resources(PAGE);
+        assert_eq!(res.procedural_actions, procedural);
         let selectors =
             restored.hidden_class_id_selectors(["ad-banner"], [] as [&str; 0], &res.exceptions);
         assert_eq!(selectors, vec![".ad-banner".to_string()]);

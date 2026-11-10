@@ -23,6 +23,14 @@ class CosmeticScriptTest {
     }
 
     @Test
+    fun `starts procedural filters with an escaped json string`() {
+        assertEquals(
+            """(function(){var f=window.__tvshieldsStartProcedural;if(f)f("[{\"selector\":[]}]");})();""",
+            startProceduralScript("""[{"selector":[]}]"""),
+        )
+    }
+
+    @Test
     fun `escapes css that could end the javascript string`() {
         assertEquals(""""a\"b\\c\nd"""", jsString("a\"b\\c\nd"))
     }

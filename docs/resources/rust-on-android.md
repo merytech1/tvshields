@@ -40,12 +40,17 @@ strip = true
 # No `panic = "abort"`: panics must unwind so the bridge can turn them into exceptions.
 ```
 
-Measured on 2026-11-08 (adblock 0.13.5, jni 0.22.4, NDK r30, Rust 1.99.1), roadmap 1.3 / rules C3:
+Measured on 2026-11-10 (adblock 0.13.5 with `css-validation`, jni 0.22.4, NDK r30, Rust 1.99.1),
+roadmap 4.3 / rules C3:
 
 | ABI | `libtvshields_engine.so` |
 |---|---|
-| `armeabi-v7a` | 1,967,532 bytes (1.88 MB) |
-| `arm64-v8a` | 2,908,640 bytes (2.77 MB) |
+| `armeabi-v7a` | 2,034,988 bytes (1.94 MB) |
+| `arm64-v8a` | 3,016,952 bytes (2.88 MB) |
+
+The `css-validation` feature (roadmap 4.3) grew the libraries by about 65–110 KB. It also changes
+what the engine reports for procedural rules, so `EngineRepository.FORMAT_VERSION` is **2** and
+caches written by earlier builds are rebuilt once.
 
 Both only depend on `libc.so` and `libdl.so` (no `libc++_shared.so` to bundle).
 
