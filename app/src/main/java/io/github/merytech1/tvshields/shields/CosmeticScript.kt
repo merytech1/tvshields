@@ -24,6 +24,10 @@ internal fun cosmeticScript(css: String): String = """
     })();
 """.trimIndent()
 
+/** Calls the generic script's own `<style>` element with selectors the engine just matched. */
+internal fun applyGenericCosmeticCss(css: String): String =
+    "(function(){var f=window.__tvshieldsApplyCosmeticCss;if(f)f(${jsString(css)});})();"
+
 /** CSS and selectors come from filter lists: escape them so they cannot end the JS string. */
 internal fun jsString(value: String): String = buildString {
     append('"')

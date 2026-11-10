@@ -16,7 +16,7 @@
 | `WebViewClient.shouldOverrideUrlLoading` | Register the cosmetic script before a link starts loading (1.2) | API 24+ |
 | `WebViewClient.onPageStarted` / `doUpdateVisitedHistory` | Track the current main URL (request source) | Always |
 | `WebViewCompat.addDocumentStartJavaScript(webView, script, allowedOriginRules)` | Inject cosmetic CSS and scriptlets **before** page code runs | Requires `WebViewFeature.DOCUMENT_START_SCRIPT` |
-| `WebViewCompat.addWebMessageListener(webView, name, allowedOriginRules, listener)` | Safe page → app channel for generic cosmetic filtering | Requires `WebViewFeature.WEB_MESSAGE_LISTENER` |
+| `WebViewCompat.addWebMessageListener(webView, name, allowedOriginRules, listener)` | Safe page → app channel for generic cosmetic filtering; origin and main frame are validated, and it is removed with the WebView | Requires `WebViewFeature.WEB_MESSAGE_LISTENER` |
 | `WebView.evaluateJavascript` | Injection fallback when `DOCUMENT_START_SCRIPT` is missing (rules C4) | API 19+ |
 | `WebView.setWebContentsDebuggingEnabled(true)` | **Debug only**: lets REA/DevTools inspect the TV's WebView | API 19+ |
 

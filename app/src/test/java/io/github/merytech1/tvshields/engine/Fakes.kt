@@ -10,6 +10,7 @@ internal class FakeEngine(val rules: List<String>) : AdblockEngine {
     @Volatile
     var closed = false
     var cosmeticJson = """{"hide_selectors":[]}"""
+    var hiddenSelectors = emptyList<String>()
 
     override fun checkRequest(url: String, sourceUrl: String, requestType: String, method: String): NetworkDecision {
         // Like a released native handle.
@@ -20,6 +21,11 @@ internal class FakeEngine(val rules: List<String>) : AdblockEngine {
     override fun cosmeticResources(url: String): String {
         check(!closed) { "engine used after close" }
         return cosmeticJson
+    }
+
+    override fun hiddenClassIdSelectors(classes: List<String>, ids: List<String>, exceptions: List<String>): List<String> {
+        check(!closed) { "engine used after close" }
+        return hiddenSelectors
     }
 
     override fun serialize() = rules.joinToString("\n").toByteArray()

@@ -214,20 +214,26 @@ happened too late; it can run after the page's first paint, so ads may flash bef
 
 **b) Generic**, as the page changes:
 ```
-assets/js/cosmetic.js (in the page)
-   MutationObserver collects new class and id values
-   │  postMessage (WebMessageListener, not addJavascriptInterface)
+assets/js/cosmetic.js (top frame only)
+   initial scan + MutationObserver: new nodes and class/id changes
+   │  postMessage (WebMessageListener, not addJavascriptInterface), batched ~100 ms
    ▼
 CosmeticInjector → engine.hidden_class_id_selectors(classes, ids, exceptions)
-   │
+   │  (background thread)
    ▼
-injects a <style> with the returned selectors
+appends the returned selectors to a separate <style> element
 ```
-Batched (debounce ~100 ms) to avoid overloading the TV (T7).
+The script is injected at document start only when the page's `generichide` is false and
+`WEB_MESSAGE_LISTENER` is supported. Without `DOCUMENT_START_SCRIPT` it is started from
+`onPageStarted` instead (rules C4). Each class or id is sent at most once per document.
+Batching and those caps keep the TV responsive (T7).
 
-**Security of the JS → Kotlin channel.** `WebMessageListener` is used because it allows
-validating the message origin. Messages only accept lists of short strings (class/id) with a
-size cap. Anything else is dropped.
+**Security of the JS → Kotlin channel.** `WebMessageListener` is used because the app can
+validate the origin. Only main-frame string messages whose origin matches the current page are
+accepted. The JSON may contain at most 500 class and 500 id values of at most 128 characters, in
+a message of at most 16 KB; anything else is dropped. The engine runs off the UI thread, the
+returned selectors are deduplicated, and each CSS batch is capped. The listener and its coroutine
+scope are released when the WebView is destroyed.
 
 ### 5.3 Script replacement (1.3)
 

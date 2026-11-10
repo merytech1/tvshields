@@ -1,5 +1,6 @@
 package io.github.merytech1.tvshields.engine
 
+import org.json.JSONArray
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** [AdblockEngine] backed by one native engine handle. */
@@ -18,6 +19,21 @@ class NativeAdblockEngine private constructor(private val handle: Long) : Adbloc
     }
 
     override fun cosmeticResources(url: String): String = NativeEngine.nativeCosmeticResources(handle, url)
+
+    override fun hiddenClassIdSelectors(
+        classes: List<String>,
+        ids: List<String>,
+        exceptions: List<String>,
+    ): List<String> {
+        val json = NativeEngine.nativeHiddenSelectors(
+            handle,
+            classes.toTypedArray(),
+            ids.toTypedArray(),
+            exceptions.toTypedArray(),
+        )
+        val selectors = JSONArray(json)
+        return (0 until selectors.length()).mapNotNull { (selectors.opt(it) as? String)?.takeIf(String::isNotBlank) }
+    }
 
     override fun serialize(): ByteArray = NativeEngine.nativeSerialize(handle)
 

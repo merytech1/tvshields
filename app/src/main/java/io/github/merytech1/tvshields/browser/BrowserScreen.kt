@@ -62,7 +62,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
     var moveRequests by remember { mutableIntStateOf(0) }
     var webViewFocused by remember { mutableStateOf(false) }
 
-    val injector = remember { CosmeticInjector(cosmetics) }
+    val injector = remember(context) { CosmeticInjector(context, cosmetics) }
     val webView = remember {
         createWebView(context, viewModel, shields, injector, colors.background.toArgb())
     }
@@ -112,6 +112,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
         }
         onDispose {
             webView.keyHandler = null
+            injector.dispose(webView)
             webView.destroy()
         }
     }
@@ -273,6 +274,8 @@ private fun createWebView(
         viewModel,
         context.getString(R.string.shields_blocked_page),
     )
+    // Generic filtering needs the JS channel before the first document loads.
+    cosmetics.attach(this)
     webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) = viewModel.onProgress(newProgress)
     }

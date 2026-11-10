@@ -19,6 +19,9 @@ class ShieldsManagerTest {
 
         override fun cosmeticResources(url: String) = """{"hide_selectors":[]}"""
 
+        override fun hiddenClassIdSelectors(classes: List<String>, ids: List<String>, exceptions: List<String>) =
+            emptyList<String>()
+
         override fun serialize() = ByteArray(0)
 
         override fun close() = Unit
