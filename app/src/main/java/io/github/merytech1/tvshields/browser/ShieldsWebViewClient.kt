@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream
  */
 class ShieldsWebViewClient(
     private val shields: ShieldsManager,
+    private val cosmetics: CosmeticInjector,
     private val viewModel: BrowserViewModel,
     private val blockedPageText: String,
 ) : WebViewClient() {
@@ -36,7 +37,13 @@ class ShieldsWebViewClient(
         if (mainFrame) pageUrl = url
         val accept = request.requestHeaders.entries.firstOrNull { it.key.equals("Accept", ignoreCase = true) }?.value
 
-        return when (shields.check(url, pageUrl, mainFrame, accept, request.method)) {
+        val decision = shields.check(url, pageUrl, mainFrame, accept, request.method)
+        // The main-frame request is the last point before the document starts loading.
+        if (mainFrame && (decision == NetworkDecision.Allow || decision is NetworkDecision.Rewrite)) {
+            cosmetics.prepare(view, url)
+        }
+
+        return when (decision) {
             NetworkDecision.Allow, is NetworkDecision.Rewrite -> null
             // Redirect resources arrive with roadmap 5.2; until then a redirect rule just blocks.
             NetworkDecision.Block, is NetworkDecision.Redirect -> {
@@ -46,8 +53,16 @@ class ShieldsWebViewClient(
         }
     }
 
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        // Runs on the UI thread before the new document begins loading: the right moment to
+        // register the document-start script for link clicks.
+        if (request.isForMainFrame) cosmetics.prepare(view, request.url.toString())
+        return false
+    }
+
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
         pageUrl = url
+        cosmetics.injectFallback(view, url)
         viewModel.onPageStarted(url)
     }
 

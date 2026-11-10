@@ -8,6 +8,7 @@ import io.github.merytech1.tvshields.engine.NativeAdblockEngine
 import io.github.merytech1.tvshields.lists.FilterListRepository
 import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,8 @@ class AppContainer(val context: Context) {
     )
 
     val shields = ShieldsManager { engineLoader.engine.value }
+
+    val cosmetics = CosmeticFilter { engineLoader.engine.value }
 
     private companion object {
         const val TAG = "tvshields.engine"

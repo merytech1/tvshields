@@ -13,6 +13,7 @@
 |---|---|---|
 | `WebViewClient.shouldInterceptRequest(view, WebResourceRequest)` | Filter every request (1.1) and serve redirects (1.3). Called **on background threads**. | API 21+ |
 | `WebResourceResponse(mime, encoding, status, reason, headers, stream)` | Empty response or fake resource | API 21+ |
+| `WebViewClient.shouldOverrideUrlLoading` | Register the cosmetic script before a link starts loading (1.2) | API 24+ |
 | `WebViewClient.onPageStarted` / `doUpdateVisitedHistory` | Track the current main URL (request source) | Always |
 | `WebViewCompat.addDocumentStartJavaScript(webView, script, allowedOriginRules)` | Inject cosmetic CSS and scriptlets **before** page code runs | Requires `WebViewFeature.DOCUMENT_START_SCRIPT` |
 | `WebViewCompat.addWebMessageListener(webView, name, allowedOriginRules, listener)` | Safe page → app channel for generic cosmetic filtering | Requires `WebViewFeature.WEB_MESSAGE_LISTENER` |
