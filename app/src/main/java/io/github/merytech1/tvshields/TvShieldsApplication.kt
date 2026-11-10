@@ -1,6 +1,7 @@
 package io.github.merytech1.tvshields
 
 import android.app.Application
+import io.github.merytech1.tvshields.lists.ListUpdateWorker
 
 class TvShieldsApplication : Application() {
 
@@ -12,5 +13,6 @@ class TvShieldsApplication : Application() {
         super.onCreate()
         container = AppContainer(this)
         container.engineLoader.start()
+        ListUpdateWorker.schedule(this)
     }
 }

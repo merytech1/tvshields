@@ -1,5 +1,6 @@
 package io.github.merytech1.tvshields.engine
 
+import io.github.merytech1.tvshields.shields.ShieldsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -8,10 +9,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 
 class EngineLoaderTest {
 
@@ -22,8 +27,12 @@ class EngineLoaderTest {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + Dispatchers.Default)
 
-    private fun loader(lists: FakeLists) =
-        EngineLoader(EngineRepository(tmp.root.resolve("engine.dat"), lists, factory), lists::hasStoredLists, scope)
+    private fun loader(lists: FakeLists) = EngineLoader(
+        EngineRepository(tmp.root.resolve("engine.dat"), lists, factory),
+        lists::hasStoredLists,
+        scope,
+        closeDelayMs = 50,
+    )
 
     /** Waits for everything the loader launched. */
     private fun awaitIdle() = runBlocking { job.children.toList().forEach { it.join() } }
@@ -124,5 +133,85 @@ class EngineLoaderTest {
 
         assertEquals(EngineStatus.Ready, loader.status.value)
         assertEquals(1, factory.built)
+    }
+
+    @Test
+    fun `refresh with changed lists swaps the engine and closes the old one later`() {
+        val lists = FakeLists(listOf("ads"))
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+        val old = loader.engine.value as FakeEngine
+
+        lists.onUpdate = listOf("ads", "tracker")
+        val swapped = runBlocking { loader.refresh() }
+
+        assertTrue(swapped)
+        assertEquals(NetworkDecision.Block, loader.engine.value!!.checkRequest("https://tracker.example/", "", "script"))
+        assertFalse("old engine stays usable for a while", old.closed)
+        awaitIdle()
+        assertTrue(old.closed)
+    }
+
+    @Test
+    fun `refresh with unchanged lists keeps the engine`() {
+        val loader = loader(FakeLists(listOf("ads")))
+        loader.start()
+        awaitIdle()
+        val before = loader.engine.value
+
+        assertFalse(runBlocking { loader.refresh() })
+        assertSame(before, loader.engine.value)
+    }
+
+    @Test
+    fun `lists arriving after continuing unprotected turn Shields on`() {
+        val lists = FakeLists(emptyList())
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+        loader.continueUnprotected()
+
+        lists.onUpdate = listOf("ads")
+        runBlocking { loader.refresh() }
+
+        assertEquals(EngineStatus.Ready, loader.status.value)
+        assertNotNull(loader.engine.value)
+    }
+
+    @Test
+    fun `an update does not interrupt ongoing browsing`() {
+        val lists = FakeLists(listOf("ads"))
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+        val shields = ShieldsManager { loader.engine.value }
+        val running = AtomicBoolean(true)
+        val checks = AtomicInteger()
+        val leaks = AtomicInteger()
+        // Page requests on several WebView threads while the update runs.
+        val threads = List(4) {
+            thread {
+                while (running.get()) {
+                    val decision = shields.check("https://ads.example/a.js", "https://news.example/", false, "*/*", "GET")
+                    if (decision != NetworkDecision.Block) leaks.incrementAndGet()
+                    checks.incrementAndGet()
+                }
+            }
+        }
+
+        lists.onUpdate = listOf("ads", "tracker")
+        runBlocking { loader.refresh() }
+        awaitIdle() // the old engine is closed while requests keep coming
+        Thread.sleep(50)
+        running.set(false)
+        threads.forEach { it.join() }
+
+        assertTrue(checks.get() > 0)
+        assertEquals("ad requests allowed during the update", 0, leaks.get())
+        assertEquals(
+            NetworkDecision.Block,
+            shields.check("https://tracker.example/t.js", "https://news.example/", false, "*/*", "GET"),
+        )
     }
 }
