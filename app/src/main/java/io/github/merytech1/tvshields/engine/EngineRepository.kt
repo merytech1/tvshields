@@ -108,7 +108,10 @@ class EngineRepository(
     private companion object {
         val MAGIC = "TVSE".toByteArray()
 
-        /** Bump when the way the engine is built changes, to discard old caches. */
-        const val FORMAT_VERSION: Byte = 1
+        /**
+         * Bump when the way the engine is built changes, to discard old caches.
+         * 2: `css-validation` (structured procedural filters, roadmap 4.3).
+         */
+        const val FORMAT_VERSION: Byte = 2
     }
 }

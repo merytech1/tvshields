@@ -28,6 +28,13 @@ internal fun cosmeticScript(css: String): String = """
 internal fun applyGenericCosmeticCss(css: String): String =
     "(function(){var f=window.__tvshieldsApplyCosmeticCss;if(f)f(${jsString(css)});})();"
 
+/**
+ * Starts the procedural engine in `assets/js/procedural.js` with the filters that
+ * [CosmeticFilter] validated for this page.
+ */
+internal fun startProceduralScript(filtersJson: String): String =
+    "(function(){var f=window.__tvshieldsStartProcedural;if(f)f(${jsString(filtersJson)});})();"
+
 /** CSS and selectors come from filter lists: escape them so they cannot end the JS string. */
 internal fun jsString(value: String): String = buildString {
     append('"')

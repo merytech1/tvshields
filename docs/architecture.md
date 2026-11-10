@@ -189,7 +189,7 @@ Checked on the reference TV (2026-11-09, default lists): adblock-tester.com scor
 
 ### 5.2 Cosmetic filtering (1.2)
 
-Two parts, as in Brave:
+Three parts, as in Brave:
 
 **a) URL-specific**, at the start of every page:
 ```
@@ -234,6 +234,33 @@ accepted. The JSON may contain at most 500 class and 500 id values of at most 12
 a message of at most 16 KB; anything else is dropped. The engine runs off the UI thread, the
 returned selectors are deduplicated, and each CSS batch is capped. The listener and its coroutine
 scope are released when the WebView is destroyed.
+
+**c) Procedural**, at document start and as the page changes:
+```
+engine.url_cosmetic_resources(url) → procedural_actions (structured JSON; the
+                                     engine is built with adblock-rust `css-validation`)
+                                    + hide_selectors with procedural syntax
+   ▼
+CosmeticFilter / ProceduralSelector (Kotlin): validates operators and actions,
+splits procedural text nested inside a structured `css-selector`
+   ▼
+assets/js/procedural.js (top frame only): initial scan + MutationObserver
+```
+Supported operators: `has-text` (`contains`, `-abp-contains`), `has` (including the relative
+`>`, `+` and `~` forms), `not`, `matches-attr`, `matches-css`, `matches-css-before`,
+`matches-css-after`, `matches-path`, `min-text-length`, `upward` and `xpath`. Supported actions:
+default hide, `remove`, `style`, `remove-attr` and `remove-class`. adblock-rust cannot split
+`:has(...)` nested inside another `:has` (`:has(p:has-text(...))`): those selectors stay raw and
+Kotlin parses them. Nested procedural text that arrives inside a structured `css-selector` (a
+nested `:has` with an action) is split recursively before reaching the page.
+
+The script runs only when the page has procedural filters. It is injected with the same
+document-start registration as (a), and also from `onPageStarted` as the C4 fallback; its entry
+point ignores a second start. Every pass is bounded (rules T7): at most 32 filters, 32 operators
+per filter and depth 8; 2,500 candidate nodes per pass; 1,200 queued mutation nodes and 6
+ancestors per change; 150 ms debounce; 20 ms initial and 8 ms mutation time budgets, with the
+remaining work retried. A `childList` change rechecks its parent (this catches `textContent`
+replacement), and `characterData` / attribute changes recheck the target and its ancestors.
 
 ### 5.3 Script replacement (1.3)
 

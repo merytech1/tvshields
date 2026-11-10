@@ -14,6 +14,7 @@ import io.github.merytech1.tvshields.shields.CosmeticMessage
 import io.github.merytech1.tvshields.shields.CosmeticResources
 import io.github.merytech1.tvshields.shields.applyGenericCosmeticCss
 import io.github.merytech1.tvshields.shields.cosmeticScript
+import io.github.merytech1.tvshields.shields.startProceduralScript
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,10 +34,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * URL-specific selectors are registered before the load starts, so they apply before the first
  * paint. The generic script (`assets/js/cosmetic.js`) runs at document start too and keeps
  * reporting new classes and ids; [CosmeticFilter] asks the engine off the UI thread and the
- * matching selectors are appended to the page's own `<style>` element.
+ * matching selectors are appended to the page's own `<style>` element. The procedural script
+ * (`assets/js/procedural.js`) evaluates `:has-text`, `:upward` and the other operators from the
+ * filters [CosmeticFilter] validated for the page.
  *
- * Document-start scripts are optional (rules C4): the CSS is re-applied in `onPageStarted`, and
- * generic filtering is skipped when `WEB_MESSAGE_LISTENER` is unavailable.
+ * Document-start scripts are optional (rules C4): the scripts are re-applied in `onPageStarted`,
+ * and generic filtering is skipped when `WEB_MESSAGE_LISTENER` is unavailable.
  */
 class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
 
@@ -73,7 +76,8 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
     private val supportsWebMessages =
         WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)
 
-    private val genericScript: String by lazy { readGenericScript() }
+    private val genericScript: String by lazy { readScript(GENERIC_SCRIPT_ASSET) }
+    private val proceduralScript: String by lazy { readScript(PROCEDURAL_SCRIPT_ASSET) }
     private val log = Log.isLoggable(TAG, Log.DEBUG)
 
     private val messageListener = WebViewCompat.WebMessageListener { view, message, sourceOrigin, isMainFrame, _ ->
@@ -185,6 +189,14 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
             if (isNotEmpty()) append('\n')
             append(genericScript)
         }
+        resources.procedural?.let { filters ->
+            if (proceduralScript.isNotBlank()) {
+                if (isNotEmpty()) append('\n')
+                append(proceduralScript)
+                append('\n')
+                append(startProceduralScript(filters))
+            }
+        }
     }
 
     /**
@@ -231,10 +243,10 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
         }
     }
 
-    private fun readGenericScript(): String = try {
-        appContext.assets.open(GENERIC_SCRIPT_ASSET).bufferedReader().use { it.readText() }
+    private fun readScript(asset: String): String = try {
+        appContext.assets.open(asset).bufferedReader().use { it.readText() }
     } catch (e: IOException) {
-        Log.e(TAG, "Missing $GENERIC_SCRIPT_ASSET: generic cosmetic filtering is off", e)
+        Log.e(TAG, "Missing $asset: cosmetic filtering is incomplete", e)
         ""
     }
 
@@ -260,6 +272,7 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
         const val UI_TIMEOUT_MS = 100L
         const val JS_OBJECT = "tvshieldsCosmetic"
         const val GENERIC_SCRIPT_ASSET = "js/cosmetic.js"
+        const val PROCEDURAL_SCRIPT_ASSET = "js/procedural.js"
     }
 }
 
