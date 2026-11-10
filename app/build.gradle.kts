@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.tv.material)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
 

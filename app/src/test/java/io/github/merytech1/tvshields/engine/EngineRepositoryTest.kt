@@ -93,4 +93,36 @@ class EngineRepositoryTest {
         assertNull(repository(lists).load())
         assertEquals(0, factory.built)
     }
+
+    @Test
+    fun `refresh with unchanged lists builds nothing`() = runBlocking {
+        val lists = FakeLists(listOf("ads"))
+        repository(lists).load()
+
+        val result = repository(lists).refresh()
+
+        assertNull(result.engine)
+        assertEquals(1, factory.built)
+    }
+
+    @Test
+    fun `refresh with changed lists builds and caches a new engine`() = runBlocking {
+        val lists = FakeLists(listOf("ads"))
+        repository(lists).load()
+
+        lists.onUpdate = listOf("ads", "tracker")
+        val result = repository(lists).refresh()
+
+        assertEquals(NetworkDecision.Block, result.engine!!.engine.checkRequest("https://tracker.example/", "", "script"))
+        // The next launch loads the new engine from the cache.
+        assertEquals(LoadedEngine.Source.CACHE, repository(lists).load()!!.source)
+        assertEquals(2, factory.built)
+    }
+
+    @Test
+    fun `refresh rebuilds when asked even without changes`() = runBlocking {
+        val result = repository(FakeLists(listOf("ads"))).refresh(rebuild = true)
+        assertEquals(1, factory.built)
+        assertEquals(LoadedEngine.Source.BUILT, result.engine!!.source)
+    }
 }

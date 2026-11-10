@@ -1,6 +1,7 @@
 package io.github.merytech1.tvshields.engine
 
 import io.github.merytech1.tvshields.lists.FilterListStore
+import io.github.merytech1.tvshields.lists.UpdateResult
 import io.github.merytech1.tvshields.util.writeAtomically
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -13,6 +14,9 @@ import java.io.IOException
 data class LoadedEngine(val engine: AdblockEngine, val source: Source, val millis: Long) {
     enum class Source { CACHE, BUILT }
 }
+
+/** Outcome of [EngineRepository.refresh]. */
+data class RefreshResult(val update: UpdateResult, val engine: LoadedEngine?)
 
 /**
  * Provides the blocking engine, cached in [file] (`filesDir/engine.dat`, rules T8, architecture §5.4).
@@ -49,6 +53,24 @@ class EngineRepository(
             val engine = factory.fromLists(texts)
             writeCache(engine, lists.fingerprint())
             LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start))
+        }
+    }
+
+    /**
+     * Checks the lists for updates (roadmap 3.6). If any changed, or [rebuild] is set (no engine
+     * yet), builds a new engine and rewrites the cache. [RefreshResult.engine] is null when there
+     * is nothing new or still no lists.
+     */
+    suspend fun refresh(rebuild: Boolean = false): RefreshResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val update = lists.update()
+            if (!update.changed && !rebuild) return@withContext RefreshResult(update, null)
+            val start = System.nanoTime()
+            val texts = lists.storedLists()
+            if (texts.isEmpty()) return@withContext RefreshResult(update, null)
+            val engine = factory.fromLists(texts)
+            writeCache(engine, lists.fingerprint())
+            RefreshResult(update, LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start)))
         }
     }
 

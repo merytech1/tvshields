@@ -289,6 +289,23 @@ Whether lists are stored is checked synchronously when the app starts, so a norm
 flashes the first-launch screen. Without lists the question comes back on the next launch.
 A partial download (some sources failed) still builds an engine from what arrived.
 
+**List updates (roadmap 3.6).** `ListUpdateWorker` runs every 24 h with a network
+(WorkManager, unique periodic work, first run 24 h after the first launch). It calls
+`EngineLoader.refresh()`:
+- `FilterListRepository.update()` sends `ETag` / `If-Modified-Since`. If nothing changed, nothing
+  else happens.
+- If a list changed (or there is no engine yet, e.g. after "Continue without protection"), a new
+  engine is built in the background and `engine.dat` is rewritten.
+- The new engine is swapped in atomically (`StateFlow.getAndUpdate`). Every request reads the
+  current engine, so it uses either the old or the new one, never none. The old engine is closed
+  10 s later, after any request that already picked it up has finished.
+
+Checked on the reference TV (2026-11-09): with theverge.com open and scrolling, an update
+downloaded 2 changed lists, rebuilt the engine in 4.7 s and swapped it with no error; the next
+launch loaded the new engine from the cache (603 ms). WorkManager does not run periodic work
+before its time, even with `cmd jobscheduler run -f`; to try it, enqueue a one-time
+`ListUpdateWorker` temporarily.
+
 To try the no-connection screen on the TV without cutting its network, put a file where the lists
 folder goes: `adb shell pm clear <app>`, then `run-as <app> mkdir files` and
 `run-as <app> touch files/lists`. No list can be saved, so the download fails. A global
