@@ -15,6 +15,14 @@ class CosmeticScriptTest {
     }
 
     @Test
+    fun `applies generic css through the page function`() {
+        assertEquals(
+            """(function(){var f=window.__tvshieldsApplyCosmeticCss;if(f)f(".ad { display: none !important; }");})();""",
+            applyGenericCosmeticCss(".ad { display: none !important; }"),
+        )
+    }
+
+    @Test
     fun `escapes css that could end the javascript string`() {
         assertEquals(""""a\"b\\c\nd"""", jsString("a\"b\\c\nd"))
     }

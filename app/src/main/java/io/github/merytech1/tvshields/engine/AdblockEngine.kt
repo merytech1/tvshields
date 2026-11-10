@@ -24,6 +24,14 @@ interface AdblockEngine : AutoCloseable {
      */
     fun cosmeticResources(url: String): String
 
+    /**
+     * CSS selectors that hide the generic rules matching [classes] and [ids]. [exceptions] must
+     * come from [cosmeticResources] for the same page, so `#@#` rules are respected.
+     *
+     * Throws [RuntimeException] on a native engine error.
+     */
+    fun hiddenClassIdSelectors(classes: List<String>, ids: List<String>, exceptions: List<String>): List<String>
+
     /** Engine state for `engine.dat` (rules T8). Resources are not included. */
     fun serialize(): ByteArray
 }
