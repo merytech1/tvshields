@@ -18,6 +18,12 @@ sealed interface NetworkDecision {
 interface AdblockEngine : AutoCloseable {
     fun checkRequest(url: String, sourceUrl: String, requestType: String, method: String = "GET"): NetworkDecision
 
+    /**
+     * URL-specific cosmetic resources as JSON (`UrlSpecificResources`: `hide_selectors`,
+     * `procedural_actions`, `exceptions`, `injected_script`, `generichide`).
+     */
+    fun cosmeticResources(url: String): String
+
     /** Engine state for `engine.dat` (rules T8). Resources are not included. */
     fun serialize(): ByteArray
 }

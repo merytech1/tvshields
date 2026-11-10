@@ -201,8 +201,16 @@ engine.url_cosmetic_resources(url) → UrlSpecificResources {
     generichide,          # → if true, disables part (b)
 }
 ```
-Injected with `WebViewCompat.addDocumentStartJavaScript` (before any page code runs).
-Fallback if unavailable: `evaluateJavascript` in `onPageStarted` (rules C4).
+Injected with `WebViewCompat.addDocumentStartJavaScript` (before any page code runs). The script is
+registered before the load starts: from the address bar and Home, from `shouldOverrideUrlLoading`
+for link clicks, and from the main-frame `shouldInterceptRequest` as a last chance for redirects.
+Registration is a UI-thread call, so the request thread waits for it before returning the response;
+the previous page's script is removed on each navigation. Same-origin iframes receive the main
+page's selectors (accepted limitation, as in §5.1).
+
+The same CSS is applied again in `onPageStarted` as a safety net (it updates the same `<style>`
+element). This covers WebViews without `DOCUMENT_START_SCRIPT` (rules C4) and registrations that
+happened too late; it can run after the page's first paint, so ads may flash before they are hidden.
 
 **b) Generic**, as the page changes:
 ```

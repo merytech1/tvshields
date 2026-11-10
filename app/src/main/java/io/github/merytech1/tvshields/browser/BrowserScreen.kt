@@ -45,11 +45,12 @@ import io.github.merytech1.tvshields.browser.cursor.Direction
 import io.github.merytech1.tvshields.browser.cursor.Scroll
 import io.github.merytech1.tvshields.browser.cursor.WebViewInput
 import io.github.merytech1.tvshields.R
+import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
 @Composable
-fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
+fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetics: CosmeticFilter) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
     val context = LocalContext.current
@@ -61,13 +62,21 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
     var moveRequests by remember { mutableIntStateOf(0) }
     var webViewFocused by remember { mutableStateOf(false) }
 
+    val injector = remember { CosmeticInjector(cosmetics) }
     val webView = remember {
-        createWebView(context, viewModel, shields, colors.background.toArgb())
+        createWebView(context, viewModel, shields, injector, colors.background.toArgb())
     }
 
     fun leaveToAddressBar() {
         cursor.releaseAll()
         addressFocus.requestFocus()
+    }
+
+    // The cosmetic script must be registered before the target document begins loading.
+    fun goBack() {
+        val history = webView.copyBackForwardList()
+        history.getItemAtIndex(history.currentIndex - 1)?.url?.let { injector.prepare(webView, it) }
+        webView.goBack()
     }
 
     // Pushing up at the top of the page goes back to the address bar.
@@ -98,6 +107,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
                 },
                 onClick = { WebViewInput.tap(webView, cursor.x, cursor.y) },
                 onLeave = ::leaveToAddressBar,
+                onBack = ::goBack,
             )
         }
         onDispose {
@@ -110,6 +120,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
     }
     LaunchedEffect(webView) {
         viewModel.loads.collect { url ->
+            if (url != HOME_URL) injector.prepare(webView, url)
             webView.loadUrl(url)
             // The start page has nothing to point at: focus goes to the address bar.
             if (url == HOME_URL) addressFocus.requestFocus() else webView.requestFocus()
@@ -133,8 +144,11 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager) {
             state = state,
             addressFocus = addressFocus,
             onSubmit = viewModel::onAddressSubmit,
-            onBack = { if (webView.canGoBack()) webView.goBack() },
-            onReload = webView::reload,
+            onBack = { if (webView.canGoBack()) goBack() },
+            onReload = {
+                webView.url?.let { injector.prepare(webView, it) }
+                webView.reload()
+            },
             onHome = viewModel::onHome,
             // Overscan safe area: 48 dp sides, 27 dp top (design.md §5). Drawn after the WebView
             // (zIndex): on the reference TV the WebView paints its background outside its bounds.
@@ -203,6 +217,7 @@ private fun handleKey(
     onMove: (Scroll) -> Unit,
     onClick: () -> Unit,
     onLeave: () -> Unit,
+    onBack: () -> Unit,
 ): Boolean {
     val direction = directionOf(keyCode)
     if (direction != null) {
@@ -227,7 +242,7 @@ private fun handleKey(
         }
         KeyEvent.KEYCODE_BACK -> {
             if (event.action == KeyEvent.ACTION_UP) {
-                if (webView.canGoBack()) webView.goBack() else onLeave()
+                if (webView.canGoBack()) onBack() else onLeave()
             }
             true
         }
@@ -244,6 +259,7 @@ private fun createWebView(
     context: Context,
     viewModel: BrowserViewModel,
     shields: ShieldsManager,
+    cosmetics: CosmeticInjector,
     backgroundColor: Int,
 ): TvWebView = TvWebView(context).apply {
     setBackgroundColor(backgroundColor)
@@ -251,7 +267,12 @@ private fun createWebView(
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
 
-    webViewClient = ShieldsWebViewClient(shields, viewModel, context.getString(R.string.shields_blocked_page))
+    webViewClient = ShieldsWebViewClient(
+        shields,
+        cosmetics,
+        viewModel,
+        context.getString(R.string.shields_blocked_page),
+    )
     webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) = viewModel.onProgress(newProgress)
     }

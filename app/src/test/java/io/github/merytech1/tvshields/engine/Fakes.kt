@@ -9,11 +9,17 @@ import io.github.merytech1.tvshields.lists.UpdateResult
 internal class FakeEngine(val rules: List<String>) : AdblockEngine {
     @Volatile
     var closed = false
+    var cosmeticJson = """{"hide_selectors":[]}"""
 
     override fun checkRequest(url: String, sourceUrl: String, requestType: String, method: String): NetworkDecision {
         // Like a released native handle.
         check(!closed) { "engine used after close" }
         return if (rules.any { url.contains(it) }) NetworkDecision.Block else NetworkDecision.Allow
+    }
+
+    override fun cosmeticResources(url: String): String {
+        check(!closed) { "engine used after close" }
+        return cosmeticJson
     }
 
     override fun serialize() = rules.joinToString("\n").toByteArray()

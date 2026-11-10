@@ -17,6 +17,8 @@ class NativeAdblockEngine private constructor(private val handle: Long) : Adbloc
         }
     }
 
+    override fun cosmeticResources(url: String): String = NativeEngine.nativeCosmeticResources(handle, url)
+
     override fun serialize(): ByteArray = NativeEngine.nativeSerialize(handle)
 
     /** Releases the native engine. Calls still running finish safely (the engine is reference counted). */

@@ -49,7 +49,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 
 | # | Task | Done when | Status |
 |---|---|---|---|
-| 4.1 | Inject `hide_selectors` at document start (with C4 fallback) | Ad gaps disappear on the test pages | ⬜ |
+| 4.1 | Inject `hide_selectors` at document start (with C4 fallback) | Ad gaps disappear on the test pages | ✅ |
 | 4.2 | `cosmetic.js` + `WebMessageListener` + `hidden_class_id_selectors` | Ads that appear after load are hidden too | ⬜ |
 | 4.3 | Procedural filters (`procedural_actions`) in our own JS | `:has-text`, `:upward`, etc. rules from the lists work on test cases | ⬜ |
 | 4.4 | Measure impact (T7) | No noticeable stutter while browsing on the reference TV | ⬜ |

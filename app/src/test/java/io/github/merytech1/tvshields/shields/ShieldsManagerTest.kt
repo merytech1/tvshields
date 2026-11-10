@@ -17,6 +17,8 @@ class ShieldsManagerTest {
             return if (url.contains("ads")) NetworkDecision.Block else NetworkDecision.Allow
         }
 
+        override fun cosmeticResources(url: String) = """{"hide_selectors":[]}"""
+
         override fun serialize() = ByteArray(0)
 
         override fun close() = Unit
