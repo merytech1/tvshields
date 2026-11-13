@@ -9,7 +9,10 @@ import io.github.merytech1.tvshields.engine.NetworkDecision
  *
  * [engine] returns the current engine, or null while it is loading: requests are then allowed.
  */
-class ShieldsManager(private val engine: () -> AdblockEngine?) {
+class ShieldsManager(
+    val perf: ShieldsPerf = ShieldsPerf.Disabled,
+    private val engine: () -> AdblockEngine?,
+) {
 
     /**
      * @param sourceUrl URL of the page that made the request (the main document).
@@ -18,12 +21,14 @@ class ShieldsManager(private val engine: () -> AdblockEngine?) {
     fun check(url: String, sourceUrl: String, isForMainFrame: Boolean, accept: String?, method: String): NetworkDecision {
         if (!url.startsWith("http://") && !url.startsWith("https://")) return NetworkDecision.Allow
         val current = engine() ?: return NetworkDecision.Allow
-        val type = RequestTypeGuesser.guess(url, isForMainFrame, accept)
-        return try {
-            current.checkRequest(url, sourceUrl, type.wireName, method)
-        } catch (e: RuntimeException) {
-            // A failing engine must never break browsing.
-            NetworkDecision.Allow
+        return perf.measure(ShieldsPerf.Op.REQUEST) {
+            val type = RequestTypeGuesser.guess(url, isForMainFrame, accept)
+            try {
+                current.checkRequest(url, sourceUrl, type.wireName, method)
+            } catch (e: RuntimeException) {
+                // A failing engine must never break browsing.
+                NetworkDecision.Allow
+            }
         }
     }
 }

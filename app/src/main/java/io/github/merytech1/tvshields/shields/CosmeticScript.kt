@@ -17,7 +17,9 @@ internal fun cosmeticScript(css: String): String = """
           style.id = id;
           root.appendChild(style);
         }
-        style.textContent = ${jsString(css)};
+        var css = ${jsString(css)};
+        // The fallback run repeats the same CSS: writing it again would restyle the page.
+        if (style.textContent !== css) style.textContent = css;
         return true;
       }
       if (!install()) document.addEventListener('readystatechange', install, { once: true });

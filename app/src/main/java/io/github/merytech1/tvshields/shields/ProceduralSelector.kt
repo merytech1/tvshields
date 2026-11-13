@@ -43,8 +43,14 @@ internal object ProceduralSelector {
 
     /** True when [selector] contains syntax that the browser cannot evaluate as plain CSS. */
     fun looksProcedural(selector: String): Boolean {
-        val lower = selector.lowercase()
-        return MARKERS.any(lower::contains)
+        // Runs for every selector of every page (~1,000), so it only looks where a marker can
+        // start: at each colon. Searching the whole selector per marker cost ~55 ms a page on the TV.
+        var colon = selector.indexOf(':')
+        while (colon >= 0) {
+            if (MARKERS.any { selector.regionMatches(colon, it, 0, it.length, ignoreCase = true) }) return true
+            colon = selector.indexOf(':', colon + 1)
+        }
+        return false
     }
 
     /** Parses a raw selector; null when it has no procedural operator or is malformed. */

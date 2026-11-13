@@ -11,7 +11,9 @@ class CosmeticScriptTest {
         val script = cosmeticScript(".ad-slot, #banner { display: none !important; }")
 
         assertTrue(script, script.contains("var id = 'tvshields-cosmetic'"))
-        assertTrue(script, script.contains("""style.textContent = ".ad-slot, #banner { display: none !important; }";"""))
+        assertTrue(script, script.contains("""var css = ".ad-slot, #banner { display: none !important; }";"""))
+        // The fallback run repeats the script: the same CSS must not be written (and restyled) again.
+        assertTrue(script, script.contains("if (style.textContent !== css) style.textContent = css;"))
     }
 
     @Test

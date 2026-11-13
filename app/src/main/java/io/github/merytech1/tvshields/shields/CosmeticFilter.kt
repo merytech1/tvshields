@@ -11,7 +11,10 @@ import org.json.JSONObject
  *
  * Never throws: cosmetic filtering must not break browsing.
  */
-class CosmeticFilter(private val engine: () -> AdblockEngine?) {
+class CosmeticFilter(
+    private val perf: ShieldsPerf = ShieldsPerf.Disabled,
+    private val engine: () -> AdblockEngine?,
+) {
 
     /**
      * What the engine knows about [url]. [css] is null when there is nothing URL-specific to
@@ -19,12 +22,41 @@ class CosmeticFilter(private val engine: () -> AdblockEngine?) {
      * [generichide] disables generic filtering, and [exceptions] must be passed back to
      * [hiddenSelectors] for the filters to respect `#@#` rules.
      */
-    fun resourcesFor(url: String): CosmeticResources? {
+    fun resourcesFor(url: String): CosmeticResources? = perf.measure(ShieldsPerf.Op.COSMETIC) {
+        val current = engine() ?: return@measure null
+        cached(current, url)?.let { return@measure it.resources }
+        val resources = resources(current, url)
+        // A failure is not kept: the next request tries again.
+        if (resources != null) remember(current, url, resources)
+        resources
+    }
+
+    /**
+     * One page asks several times (document-start registration, the `onPageStarted` fallback,
+     * redirects), sometimes on the UI thread. Building the answer takes tens of milliseconds on
+     * the reference TV, so the last few are kept (rules T7). A new engine drops them.
+     */
+    private class Cached(val engine: AdblockEngine, val resources: CosmeticResources)
+
+    private val cache = object : LinkedHashMap<String, Cached>(CACHE_SIZE, 0.75f, true) {
+        override fun removeEldestEntry(eldest: Map.Entry<String, Cached>) = size > CACHE_SIZE
+    }
+
+    private fun cached(current: AdblockEngine, url: String): Cached? = synchronized(cache) {
+        cache[url]?.takeIf { it.engine === current }
+    }
+
+    private fun remember(current: AdblockEngine, url: String, resources: CosmeticResources) = synchronized(cache) {
+        if (cache.values.any { it.engine !== current }) cache.clear()
+        cache[url] = Cached(current, resources)
+    }
+
+    private fun resources(current: AdblockEngine, url: String): CosmeticResources? {
         val json = try {
-            engine()?.cosmeticResources(url)
+            current.cosmeticResources(url)
         } catch (e: Exception) {
-            null
-        } ?: return null
+            return null
+        }
 
         val resources = try {
             JSONObject(json)
@@ -35,9 +67,7 @@ class CosmeticFilter(private val engine: () -> AdblockEngine?) {
         // Selectors with procedural syntax are not valid CSS: keep them out of the stylesheet or
         // they would invalidate every other selector in the same rule. They are evaluated by the
         // page script instead (nested `:has(...:has-text(...))` arrives here this way).
-        val selectors = resources.stringList("hide_selectors")
-        val plain = selectors.filterNot(ProceduralSelector::looksProcedural)
-        val raw = selectors.filter(ProceduralSelector::looksProcedural)
+        val (raw, plain) = resources.stringList("hide_selectors").partition(ProceduralSelector::looksProcedural)
 
         return CosmeticResources(
             css = css(plain),
@@ -74,6 +104,10 @@ class CosmeticFilter(private val engine: () -> AdblockEngine?) {
         exceptions: List<String>,
     ): List<String> {
         if (classes.isEmpty() && ids.isEmpty()) return emptyList()
+        return perf.measure(ShieldsPerf.Op.GENERIC) { selectors(classes, ids, exceptions) }
+    }
+
+    private fun selectors(classes: List<String>, ids: List<String>, exceptions: List<String>): List<String> {
         return try {
             engine()
                 ?.hiddenClassIdSelectors(classes, ids, exceptions)
@@ -100,6 +134,8 @@ class CosmeticFilter(private val engine: () -> AdblockEngine?) {
 
         /** Procedural rules are re-evaluated on mutations; the cap bounds that work (rules T7). */
         const val MAX_FILTERS = 32
+
+        const val CACHE_SIZE = 4
     }
 }
 

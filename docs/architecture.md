@@ -358,6 +358,59 @@ Privacy Filters (EasyPrivacy + uBO privacy), Brave First Party Filters, Cookie n
 Mobile app promo blocker. Regional and "annoyances" lists are optional in Settings. Details in
 [resources/filter-lists.md](resources/filter-lists.md).
 
+### 5.5 Cost on the reference TV (T7)
+
+**How to measure.** `adb shell setprop log.tag.tvshields.perf DEBUG`, then restart the app.
+`ShieldsPerf` logs one line per page under the `tvshields.perf` tag: load time and, for each kind
+of engine work (requests, URL-specific cosmetic, generic cosmetic), the count, total, maximum and
+time spent on the UI thread. It is off by default and then only runs the measured code.
+
+**Results** (roadmap 4.4, debug build on the reference TV, theverge.com, elpais.com and
+es.wikipedia.org; scrolling = 150 `DPAD_DOWN` presses, read with `dumpsys gfxinfo`):
+
+Scrolling stutters the same with and without Shields. Runs taken back to back, in the same TV
+state, give the same share of janky frames; the stutter comes from WebView on this TV (1.8 GB RAM,
+4 × Cortex-A55), not from Shields. During scrolling Shields only checks a few late requests and
+generic batches, on background threads.
+
+| Site | Janky frames, Shields on / off (2026-11-12) | Same, 2026-11-13 (TV swap full) |
+|---|---|---|
+| theverge.com | 61 % / 52 % | 81 % / 83 % |
+| elpais.com | 33 % / 32 % | 81 % / 80 % |
+| es.wikipedia.org | 43 % / 42 % | 90 % / 87 % |
+
+Engine work while a page loads, before and after the 4.4 changes (total time; UI thread in
+parentheses):
+
+| Site | Requests, before | Requests, after | Cosmetic, before | Cosmetic, after |
+|---|---|---|---|---|
+| theverge.com | 147 checks, 2,366 ms (max 174) | 147 checks, 1,316 ms (max 93) | 495 ms (270 on UI) | 428 ms (37 on UI) |
+| elpais.com | 60 checks, 1,156 ms (max 263) | 67 checks, 444 ms (max 96) | 413 ms (288 on UI) | 323 ms (29 on UI) |
+| es.wikipedia.org | 24 checks, 634 ms (max 234) | 34 checks, 457 ms (max 128) | 9 ms (9 on UI) | 10 ms (1 on UI) |
+
+Request checks run on WebView's network threads, in parallel with the downloads. App memory (PSS)
+on theverge.com: 230 MB with Shields, 218 MB without. Page load times vary by more than a second
+between identical runs, so single runs do not show a Shields cost; phase 8.4 measures them with
+more samples on a release build.
+
+**Changes that came out of the measurements:**
+- `ProceduralSelector.looksProcedural` checks each `:` once instead of searching for every
+  operator in every selector (that took ~55 ms per page).
+- `CosmeticFilter` keeps the resources of the last 4 URLs (dropped when the engine is swapped),
+  and `CosmeticInjector` reuses the page script: a page asked up to 4 times, partly on the UI
+  thread. The script also skips rewriting its `<style>` when the fallback brings the same CSS.
+- The address bar asks the engine on a background thread before `loadUrl`
+  (`CosmeticInjector.prepareInBackground`); the UI-thread registration then finds the answer cached.
+- The engine is built with `opt-level = 3` ([resources/rust-on-android.md](resources/rust-on-android.md)).
+- The first engine calls of a process are slow (~45 ms per request and ~190 ms for cosmetic
+  resources: cold code and data). `AppContainer` makes one of each in the background as soon as
+  the engine is loaded.
+
+Left as is: a link click or server redirect to a URL not yet cached still asks the engine on the
+UI thread (`shouldOverrideUrlLoading`, ~30 ms in these runs), while the previous page is still on
+screen. The first cosmetic query for a new site can take ~300 ms on the request thread; that delays
+the document, not the UI.
+
 ## 6. TV remote
 
 - **Virtual cursor**: an overlay on top of the WebView draws a pointer. The arrows move it (with
