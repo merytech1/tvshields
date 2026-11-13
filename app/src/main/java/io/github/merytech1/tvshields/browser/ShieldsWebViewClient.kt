@@ -34,7 +34,10 @@ class ShieldsWebViewClient(
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
         val mainFrame = request.isForMainFrame
-        if (mainFrame) pageUrl = url
+        if (mainFrame) {
+            pageUrl = url
+            shields.perf.pageStarted()
+        }
         val accept = request.requestHeaders.entries.firstOrNull { it.key.equals("Accept", ignoreCase = true) }?.value
 
         val decision = shields.check(url, pageUrl, mainFrame, accept, request.method)
@@ -66,7 +69,10 @@ class ShieldsWebViewClient(
         viewModel.onPageStarted(url)
     }
 
-    override fun onPageFinished(view: WebView, url: String) = viewModel.onPageFinished(url)
+    override fun onPageFinished(view: WebView, url: String) {
+        shields.perf.pageFinished(url)
+        viewModel.onPageFinished(url)
+    }
 
     override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
         // Also catches in-page navigation (history.pushState), which starts no new page.

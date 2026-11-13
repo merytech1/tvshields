@@ -1,6 +1,7 @@
 package io.github.merytech1.tvshields
 
 import android.content.Context
+import android.os.Looper
 import android.util.Log
 import io.github.merytech1.tvshields.engine.EngineLoader
 import io.github.merytech1.tvshields.engine.EngineRepository
@@ -10,9 +11,13 @@ import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
 import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
+import io.github.merytech1.tvshields.shields.ShieldsPerf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.io.File
 
 /**
@@ -38,11 +43,33 @@ class AppContainer(val context: Context) {
         log = { Log.i(TAG, it) },
     )
 
-    val shields = ShieldsManager { engineLoader.engine.value }
+    /** `adb shell setprop log.tag.tvshields.perf DEBUG` logs what Shields cost per page (read at start). */
+    val perf = ShieldsPerf(
+        enabled = Log.isLoggable(PERF_TAG, Log.DEBUG),
+        isUiThread = { Looper.myLooper() == Looper.getMainLooper() },
+        log = { Log.d(PERF_TAG, it) },
+    )
 
-    val cosmetics = CosmeticFilter { engineLoader.engine.value }
+    val shields = ShieldsManager(perf) { engineLoader.engine.value }
+
+    val cosmetics = CosmeticFilter(perf) { engineLoader.engine.value }
+
+    init {
+        // The first engine calls of a process are the slow ones (cold code and data, ~200 ms on
+        // the reference TV). Pay for them here, in the background, not on the first page (T7).
+        appScope.launch {
+            engineLoader.engine.filterNotNull().first()
+            shields.check(WARM_UP_URL, WARM_UP_URL, isForMainFrame = false, accept = null, method = "GET")
+            cosmetics.resourcesFor(WARM_UP_URL)
+            perf.pageFinished("warm-up")
+        }
+    }
 
     private companion object {
         const val TAG = "tvshields.engine"
+        const val PERF_TAG = "tvshields.perf"
+
+        /** Never requested: only run through the engine. */
+        const val WARM_UP_URL = "https://warm-up.invalid/"
     }
 }

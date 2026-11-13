@@ -162,6 +162,15 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
     }
 
     /**
+     * [prepare] for UI-thread callers that can wait: the engine is asked on a background thread,
+     * so [prepare] finds the answer cached and the UI does not stall (rules T7).
+     */
+    suspend fun prepareInBackground(view: WebView, url: String) {
+        if (supportsDocumentStart && isHttp(url)) withContext(Dispatchers.Default) { filter.resourcesFor(url) }
+        prepare(view, url)
+    }
+
+    /**
      * Re-applies the scripts after the page starts: the only injection without
      * `DOCUMENT_START_SCRIPT` (rules C4) and a safety net when document-start registration
      * happened too late. `cosmetic.js` ignores the second run.
@@ -183,7 +192,16 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
         view.evaluateJavascript(script, null)
     }
 
-    private fun pageScript(resources: CosmeticResources): String = buildString {
+    /** The script of the last page: document start and the fallback need the same one. */
+    @Volatile
+    private var lastScript: Pair<CosmeticResources, String>? = null
+
+    private fun pageScript(resources: CosmeticResources): String {
+        lastScript?.let { (cached, script) -> if (cached === resources) return script }
+        return buildScript(resources).also { lastScript = resources to it }
+    }
+
+    private fun buildScript(resources: CosmeticResources): String = buildString {
         resources.css?.let { append(cosmeticScript(it)) }
         if (!resources.generichide && supportsWebMessages && genericScript.isNotBlank()) {
             if (isNotEmpty()) append('\n')

@@ -121,7 +121,7 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
     }
     LaunchedEffect(webView) {
         viewModel.loads.collect { url ->
-            if (url != HOME_URL) injector.prepare(webView, url)
+            if (url != HOME_URL) injector.prepareInBackground(webView, url)
             webView.loadUrl(url)
             // The start page has nothing to point at: focus goes to the address bar.
             if (url == HOME_URL) addressFocus.requestFocus() else webView.requestFocus()

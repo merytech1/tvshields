@@ -191,4 +191,87 @@ class CosmeticFilterTest {
 
         assertEquals(32, JSONArray(filter.resourcesFor(page)!!.procedural!!).length())
     }
+
+    /** Counts the engine calls; every other member is unused here. */
+    private class CountingEngine(private val json: String) : AdblockEngine {
+        var calls = 0
+        var fails = false
+
+        override fun checkRequest(url: String, sourceUrl: String, requestType: String, method: String) =
+            NetworkDecision.Allow
+
+        override fun cosmeticResources(url: String): String {
+            calls++
+            if (fails) throw RuntimeException("engine error")
+            return json
+        }
+
+        override fun hiddenClassIdSelectors(classes: List<String>, ids: List<String>, exceptions: List<String>) =
+            emptyList<String>()
+
+        override fun serialize() = ByteArray(0)
+
+        override fun close() = Unit
+    }
+
+    private val adsJson = """{"hide_selectors":[".ad"]}"""
+
+    @Test
+    fun `a page asking again does not reach the engine again`() {
+        val engine = CountingEngine(adsJson)
+        val filter = CosmeticFilter { engine }
+
+        val first = filter.resourcesFor(page)
+        val second = filter.resourcesFor(page)
+
+        assertEquals(1, engine.calls)
+        assertTrue(first === second)
+    }
+
+    @Test
+    fun `another url asks the engine`() {
+        val engine = CountingEngine(adsJson)
+        val filter = CosmeticFilter { engine }
+
+        filter.resourcesFor(page)
+        filter.resourcesFor("https://other.example/")
+
+        assertEquals(2, engine.calls)
+    }
+
+    @Test
+    fun `a new engine drops the cached answers`() {
+        var engine = CountingEngine(adsJson)
+        val filter = CosmeticFilter { engine }
+        filter.resourcesFor(page)
+
+        engine = CountingEngine("""{"hide_selectors":[".new"]}""")
+        val resources = filter.resourcesFor(page)
+
+        assertEquals(1, engine.calls)
+        assertEquals(".new { display: none !important; }", resources?.css)
+    }
+
+    @Test
+    fun `an engine failure is not cached`() {
+        val engine = CountingEngine(adsJson)
+        val filter = CosmeticFilter { engine }
+        engine.fails = true
+        assertNull(filter.resourcesFor(page))
+
+        engine.fails = false
+        assertEquals(".ad { display: none !important; }", filter.resourcesFor(page)?.css)
+    }
+
+    @Test
+    fun `only the last few pages are kept`() {
+        val engine = CountingEngine(adsJson)
+        val filter = CosmeticFilter { engine }
+
+        (1..6).forEach { filter.resourcesFor("https://site$it.example/") }
+        filter.resourcesFor("https://site6.example/") // still cached
+        filter.resourcesFor("https://site1.example/") // evicted
+
+        assertEquals(7, engine.calls)
+    }
 }
