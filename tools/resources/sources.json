@@ -1,0 +1,15 @@
+{
+  "ublock": {
+    "repository": "https://github.com/gorhill/uBlock",
+    "tag": "1.76.0",
+    "commit": "aa9236cb351e369cbb68113dbe8175b87f3cd134",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "LICENSE.txt"
+  },
+  "brave": {
+    "repository": "https://github.com/brave/adblock-resources",
+    "commit": "6da9b247c3368baa8b4f24cd02046e18702a6527",
+    "license": "MPL-2.0",
+    "licenseFile": "LICENSE"
+  }
+}

@@ -1,0 +1,74 @@
+# Builds resources.json (uBlock Origin + Brave) from the commits pinned in tools/resources/sources.json,
+# checks it with the engine, and optionally publishes it to the `resources` release (rules C11).
+name: resources
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish to the `resources` release
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - tools/resources/**
+      - engine/**
+      - .github/workflows/resources.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test the generator
+        working-directory: tools/resources
+        run: node --test
+
+      - name: Generate resources.json
+        working-directory: tools/resources
+        run: node generate.mjs
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Load it into adblock-rust
+        working-directory: engine
+        run: cargo test --test generated_resources -- --ignored
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resources
+          path: tools/resources/dist/
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: resources
+          path: dist
+
+      # A fixed tag keeps the download URL stable for the app:
+      # https://github.com/<owner>/tvshields/releases/download/resources/resources.json
+      - name: Upload to the `resources` release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view resources >/dev/null 2>&1 || gh release create resources \
+            --title "Scriptlets and redirect resources" \
+            --notes "resources.json for tvshields, built from the sources listed in LICENSE-resources.txt. Not part of the app (rules C11)." \
+            --latest=false
+          gh release upload resources dist/resources.json dist/LICENSE-resources.txt --clobber

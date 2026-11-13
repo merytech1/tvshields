@@ -49,29 +49,71 @@ list maintainers. Both are loaded into the engine the same way.
 
 ## `tools/resources/` generator
 
-A Node.js script that runs **in CI only** (roadmap 5.0):
+Node.js (no dependencies), run by the `resources` workflow (`.github/workflows/resources.yml`) on
+pull requests that touch it and on demand (roadmap 5.0):
 
-1. Clones uBlock Origin and `adblock-resources` at **pinned commits**.
-2. Loads the uBO scriptlet modules and, for each one, produces a `Resource` with `kind: "template"`,
-   its aliases and its code, plus the `web_accessible_resources` files with their MIME type.
-3. Merges the result with Brave's `dist/resources.json`. On a name collision, Brave wins.
-4. Validates the JSON by loading it into `adblock-rust` (Rust test).
-5. Publishes `resources.json` as a GitHub Releases asset, together with `LICENSE-resources.txt`
-   (GPLv3 + MPL-2.0) and links to the source commits.
+1. `generate.mjs` checks out uBlock Origin and `adblock-resources` at the commits pinned in
+   `tools/resources/sources.json` (shallow fetch, cached in `tools/resources/.cache/`).
+2. It imports uBO's `src/js/resources/scriptlets.js` (`builtinScriptlets`) and
+   `src/js/redirect-resources.js`, and `convert.mjs` turns them into `Resource` entries (format
+   below). The redirect files come from `src/web_accessible_resources/`; entries with `params`
+   (`click2load.html`) are skipped because they need uBO's extension pages.
+3. The groups are merged in priority order: Brave's `dist/resources.json`, then uBO scriptlets,
+   then uBO redirects. A name already taken drops the later resource and a taken alias is removed
+   (the engine rejects duplicates); the generator prints what it dropped. Every `dependencies`
+   entry must name an existing resource.
+4. Output in `tools/resources/dist/` (not versioned): `resources.json` and
+   `LICENSE-resources.txt` (source commits, GPLv3 and MPL-2.0 texts).
+5. `engine/tests/generated_resources.rs` loads the file into adblock-rust: every resource must be
+   accepted, and `noopjs`, `set-constant` (with its helpers), a SugarCoat redirect and the trusted
+   scriptlet restriction are checked. These tests are `#[ignore]`d in a plain `cargo test`.
+6. When started by hand with *publish*, the workflow uploads both files to the `resources`
+   release, so the app has a stable URL (roadmap 5.1):
+   `https://github.com/merytech1/tvshields/releases/download/resources/resources.json`.
+
+`node --test` in `tools/resources` tests `convert.mjs` with its own fixtures. Running
+`generate.mjs` executes uBO code: only at the pinned commits, and only in CI or a disposable
+checkout. Updating a source means changing its commit in `sources.json` in a pull request, so the
+workflow checks the new version before it can be published.
 
 Why this way: uBO resources are GPLv3. Published as a **separate file** that the app downloads,
 they do not force the app to be licensed under the GPL (rules C11).
 
 ## `Resource` format
 
+uBO scriptlets are converted to the **function style** adblock-rust 0.13 understands. The content
+is the function's own source; the engine appends the helpers listed in `dependencies` and calls
+the function with the filter's arguments as JSON strings:
+
 ```json
 {
   "name": "set-constant.js",
-  "aliases": ["set-constant"],
+  "aliases": ["set.js"],
   "kind": "template",
-  "content": "<base64 of the code with {{1}}, {{2}}…>"
+  "content": "<base64 of `function setConstant(...) {...}`>",
+  "dependencies": ["set-constant.fn"]
 }
 ```
 
-`kind` is `"template"` for parameterized scriptlets, or `{"mime": "application/javascript"}` for
-redirects.
+Helpers have their own `dependencies` (`set-constant.fn` needs `safe-self.fn`, …); the engine
+resolves them recursively.
+
+| uBO entry | `kind` | Notes |
+|---|---|---|
+| Scriptlet (`*.js`) | `"template"` | Injection only, never a redirect |
+| Helper (`*.fn`) | `{"mime": "fn/javascript"}` | Only reachable through `dependencies` |
+| Redirect file | `{"mime": ...}` from the extension (`empty` → `text/plain`) | Usable as `redirect=` and, for JS, in `+js()` |
+
+Brave's resources keep their own format (`{"mime": "application/javascript"}`, no arguments).
+
+**Trusted scriptlets.** uBO marks 34 scriptlets (`trusted-set-cookie`, `trusted-set-attr`, …) and
+the `google-ima-dai.js` redirect with `requiresTrust`. They get `"permission": 1`: adblock-rust only
+injects them for filters from a list parsed with that permission bit (roadmap 5.1 decides which
+lists are trusted), and a resource with a permission is never served as a redirect.
+
+**What the injection must provide (roadmap 5.3).** uBO helpers read a `scriptletGlobals` object
+that uBO's own wrapper defines (`safeSelf` reads `scriptletGlobals.bcSecret`). Without it every
+scriptlet throws, and the engine's `try` blocks hide the error. The injected script must
+therefore be wrapped as `(function () { const scriptletGlobals = {}; … })();`. uBO also runs
+22 scriptlets (cookie, `localStorage`, `href-sanitizer`…) in an isolated world; a WebView
+document-start script only has the page's world, so they run there.
