@@ -38,11 +38,16 @@ export function scriptletResources(scriptlets) {
     const { name, fn } = entry;
     if (typeof fn !== 'function') throw new Error(`Scriptlet ${name} has no function`);
     const code = fn.toString();
-    // adblock-rust only recognizes `function name(`: anything else would be used as a template.
-    if (!new RegExp(`^function\\s+${fn.name}\\s*\\(`).test(code)) {
-      throw new Error(`Scriptlet ${name} is not a plain function declaration`);
-    }
     const helper = name.endsWith('.fn');
+    // A scriptlet must start with `function name(`: adblock-rust calls it by that name, and
+    // treats anything else as an old `{{1}}` template. A helper is pasted as is, so any
+    // declaration that binds its name works (uBO also has `async function` and `class` helpers).
+    const declaration = helper
+      ? new RegExp(`^(?:(?:async\\s+)?function\\s*\\*?\\s*${fn.name}\\s*\\(|class\\s+${fn.name}\\b)`)
+      : new RegExp(`^function\\s+${fn.name}\\s*\\(`);
+    if (!declaration.test(code)) {
+      throw new Error(`Scriptlet ${name} is not a ${helper ? 'named declaration' : 'plain function declaration'}`);
+    }
     const resource = {
       name,
       aliases: entry.aliases ?? [],

@@ -40,7 +40,21 @@ test('trusted scriptlets need the trusted permission', () => {
 
 test('scriptlets that are not function declarations are rejected', () => {
   const arrow = () => {};
+  async function later() {}
   assert.throws(() => scriptletResources([{ name: 'arrow.js', fn: arrow }]), /plain function/);
+  assert.throws(() => scriptletResources([{ name: 'later.js', fn: later }]), /plain function/);
+  assert.throws(() => scriptletResources([{ name: 'arrow.fn', fn: arrow }]), /named declaration/);
+});
+
+test('helpers may be async functions or classes', () => {
+  class RangeParser {}
+  async function editFn() {}
+  const resources = scriptletResources([
+    { name: 'range-parser.fn', fn: RangeParser },
+    { name: 'edit.fn', fn: editFn },
+  ]);
+  assert.match(decode(resources[0].content), /^class RangeParser/);
+  assert.match(decode(resources[1].content), /^async function editFn\(/);
 });
 
 test('redirects get their MIME type and file content; parameterized ones are skipped', () => {
