@@ -1,0 +1,14 @@
+{
+  "name": "tvshields-resources",
+  "private": true,
+  "description": "Builds resources.json (uBlock Origin + Brave scriptlets and redirects) for the tvshields engine",
+  "license": "MPL-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node generate.mjs",
+    "test": "node --test"
+  }
+}

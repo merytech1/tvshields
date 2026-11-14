@@ -14,3 +14,7 @@ app/src/main/jniLibs/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Resource generator (tools/resources): upstream checkouts and output
+tools/resources/.cache/
+tools/resources/dist/

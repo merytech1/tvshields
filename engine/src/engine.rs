@@ -5,7 +5,7 @@ use std::fmt;
 
 use adblock::lists::{FilterSet, ParseOptions};
 use adblock::request::Request;
-use adblock::resources::Resource;
+use adblock::resources::{InMemoryResourceStorage, Resource};
 use adblock::Engine;
 
 pub use adblock::cosmetic_filter_cache::UrlSpecificResources;
@@ -79,13 +79,18 @@ impl ShieldsEngine {
     }
 
     /// Loads scriptlets and redirect resources from a `resources.json` file.
-    /// Returns how many resources were loaded.
+    /// Returns how many resources were accepted: one with a name already in use or invalid
+    /// content is skipped, as `adblock::Engine::use_resources` does, but is not counted.
     pub fn use_resources_json(&mut self, json: &str) -> Result<usize, EngineError> {
         let resources: Vec<Resource> =
             serde_json::from_str(json).map_err(|e| EngineError::Resources(e.to_string()))?;
-        let count = resources.len();
-        self.inner.use_resources(resources);
-        Ok(count)
+        let mut storage = InMemoryResourceStorage::default();
+        let loaded = resources
+            .into_iter()
+            .filter_map(|resource| storage.add_resource(resource).ok())
+            .count();
+        self.inner.use_resource_storage(storage);
+        Ok(loaded)
     }
 
     /// Decides what to do with a request. Unparseable URLs are allowed, never blocked.
@@ -235,6 +240,17 @@ mod tests {
         let e = engine("||ads.example.net/loader.js$script,redirect=noopjs");
         let decision = e.check_request("https://ads.example.net/loader.js", PAGE, "script", "GET");
         assert_eq!(decision, NetworkDecision::Block);
+    }
+
+    #[test]
+    fn rejected_resources_are_not_counted() {
+        let duplicate = r#"[
+            { "name": "noop.js", "kind": { "mime": "application/javascript" }, "content": "" },
+            { "name": "noop.js", "kind": { "mime": "application/javascript" }, "content": "" },
+            { "name": "bad.js", "kind": "template", "content": "not base64!" }
+        ]"#;
+        let mut e = engine("");
+        assert_eq!(e.use_resources_json(duplicate).unwrap(), 1);
     }
 
     #[test]

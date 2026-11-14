@@ -58,7 +58,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 
 | # | Task | Done when | Status |
 |---|---|---|---|
-| 5.0 | `tools/resources/` generator: uBO (transformed) + Brave → `resources.json`, pinned versions | The resulting JSON loads into `adblock-rust` without errors (Rust test) | ⬜ |
+| 5.0 | `tools/resources/` generator: uBO (transformed) + Brave → `resources.json`, pinned versions | The resulting JSON loads into `adblock-rust` without errors (Rust test) | ✅ |
 | 5.1 | Download and load `resources.json` (`use_resources`) | The engine recognizes `noopjs`, `set-constant` and the `async-sugarcoat-*` resources | ⬜ |
 | 5.2 | Serve `redirect` as the response in `shouldInterceptRequest` | Test with a `redirect=` rule | ⬜ |
 | 5.3 | Inject `injected_script` (scriptlets) at document start | A test site with an ad-block detector does not show its warning | ⬜ |
