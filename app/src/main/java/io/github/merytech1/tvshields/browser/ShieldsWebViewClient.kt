@@ -8,6 +8,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import io.github.merytech1.tvshields.engine.NetworkDecision
+import io.github.merytech1.tvshields.shields.RedirectResource
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import java.io.ByteArrayInputStream
 
@@ -28,7 +29,7 @@ class ShieldsWebViewClient(
     @Volatile
     private var pageUrl = ""
 
-    /** `adb shell setprop log.tag.tvshields.block DEBUG` logs every blocked request (read at start). */
+    /** `adb shell setprop log.tag.tvshields.block DEBUG` logs every blocked or redirected request (read at start). */
     private val logBlocked = Log.isLoggable(TAG, Log.DEBUG)
 
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
@@ -48,10 +49,19 @@ class ShieldsWebViewClient(
 
         return when (decision) {
             NetworkDecision.Allow, is NetworkDecision.Rewrite -> null
-            // Redirect resources arrive with roadmap 5.2; until then a redirect rule just blocks.
-            NetworkDecision.Block, is NetworkDecision.Redirect -> {
+            NetworkDecision.Block -> {
                 if (logBlocked) Log.d(TAG, "Blocked $url")
                 if (mainFrame) blockedPage(url) else emptyResponse()
+            }
+            // A page is never replaced by a resource; a subresource gets the harmless stand-in.
+            is NetworkDecision.Redirect -> {
+                val resource = if (mainFrame) null else RedirectResource.fromDataUrl(decision.dataUrl)
+                if (logBlocked) Log.d(TAG, "${if (resource != null) "Redirected (${resource.mimeType})" else "Blocked"} $url")
+                when {
+                    mainFrame -> blockedPage(url)
+                    resource != null -> redirectResponse(resource)
+                    else -> emptyResponse()
+                }
             }
         }
     }
@@ -89,6 +99,15 @@ class ShieldsWebViewClient(
 
     private companion object {
         const val TAG = "tvshields.block"
+
+        /**
+         * The resource stands in for a script or file the page may load cross-origin (with
+         * `crossorigin` or through `fetch`), so it must pass the CORS check.
+         */
+        fun redirectResponse(resource: RedirectResource) = WebResourceResponse(
+            resource.mimeType, resource.encoding, 200, "OK",
+            mapOf("Access-Control-Allow-Origin" to "*"), ByteArrayInputStream(resource.bytes),
+        )
 
         /** What a blocked resource receives: an empty "204 No Content". */
         fun emptyResponse() = WebResourceResponse(
