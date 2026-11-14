@@ -2,6 +2,7 @@ package io.github.merytech1.tvshields.browser
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.view.KeyEvent
 import android.view.ViewConfiguration
 import android.view.inputmethod.InputMethodManager
@@ -263,6 +264,11 @@ private fun createWebView(
     cosmetics: CosmeticInjector,
     backgroundColor: Int,
 ): TvWebView = TvWebView(context).apply {
+    // Debug builds only: lets chrome://inspect (or the DevTools protocol over adb) check what
+    // Shields did inside a page, e.g. that a redirect resource ran.
+    if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        WebView.setWebContentsDebuggingEnabled(true)
+    }
     setBackgroundColor(backgroundColor)
     isFocusable = true
     settings.javaScriptEnabled = true

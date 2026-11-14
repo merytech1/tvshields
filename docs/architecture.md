@@ -271,6 +271,23 @@ Two engine mechanisms:
 | **Redirect** | `||ads.example/ad.js$script,redirect=noopjs` | The engine returns the fake resource (`BlockerResult.redirect`) and we serve it as the response. |
 | **Scriptlet** | `example.com##+js(set-constant, adBlockDetected, false)` | Arrives in `injected_script` and is injected at document start. |
 
+**Serving a redirect (roadmap 5.2).** The engine answers with a `data:<mime>;base64,…` URL.
+`RedirectResource` decodes it and `ShieldsWebViewClient` returns it from `shouldInterceptRequest`
+as a `200 OK` with that MIME type (`utf-8` for text types) and
+`Access-Control-Allow-Origin: *`, because the stand-in replaces scripts and files a page may load
+cross-origin (`crossorigin`, `fetch`). A main-frame request is never replaced by a resource: it
+gets the blocked page. A URL that cannot be decoded, or a rule whose resource is missing, falls
+back to the empty `204` of a plain block. With `log.tag.tvshields.block` at `DEBUG`, served
+redirects are logged as `Redirected (<mime>) <url>`.
+
+Checked on the reference TV (2026-11-14, default lists): theverge.com gets uBO's stand-ins for
+`gpt.js` (twice) and `apstag.js`; inside the page `googletag.apiReady` is `true` and `apstag`
+exists although the real scripts never reached the network.
+
+Debug builds enable WebView debugging (`WebView.setWebContentsDebuggingEnabled`), so a page on
+the TV can be inspected from `chrome://inspect` or through the DevTools protocol:
+`adb forward tcp:9333 localabstract:webview_devtools_remote_<pid>`. Release builds do not.
+
 **Where resources come from** (rules only name them; the engine needs their content):
 
 | Source | Contents | License | Format |
