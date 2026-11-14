@@ -3,6 +3,7 @@ package io.github.merytech1.tvshields.engine
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.merytech1.tvshields.lists.FilterListStore
+import io.github.merytech1.tvshields.lists.StoredList
 import io.github.merytech1.tvshields.lists.UpdateResult
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -22,7 +23,8 @@ class EngineCacheTest {
             UpdateResult(emptyList(), emptyList(), emptyList())
 
         override fun hasStoredLists() = true
-        override suspend fun storedLists() = listOf("||ads.example.com^", "@@||ads.example.com/ok.js")
+        override suspend fun storedLists() =
+            listOf(StoredList("||ads.example.com^"), StoredList("@@||ads.example.com/ok.js"))
         override suspend fun fingerprint() = ByteArray(32) { 7 }
     }
 

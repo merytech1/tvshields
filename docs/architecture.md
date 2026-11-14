@@ -294,6 +294,7 @@ Launch
   ├─ compatible engine.dat exists? ──yes──► Engine::deserialize (fast)
   └─ no ──► download lists + resources ──► FilterSet ──► Engine::new_with_filter_set
                                            └─► serialize → engine.dat
+  then, either way: use_resources(resources.json) (not part of engine.dat)
 
 ListUpdateWorker (WorkManager, every 24 h, requires network)
   download with ETag/If-Modified-Since ──► if changed: recompile in the background
@@ -306,13 +307,33 @@ starts with a header: a magic value, a format version and a fingerprint of the s
 and adblock-rust accepts the data (it rejects data from another crate version). Otherwise the
 engine is built from the lists and the cache is written again.
 
+**Resources (roadmap 5.1).** `FilterListRepository` downloads `resources.json` from the
+`resources` release (`DefaultLists.RESOURCES_URL`, rules C11) after the lists, with the same
+`ETag` / `If-Modified-Since` handling, into `filesDir/lists/resources.json`. A 200 response
+with the same bytes also counts as unchanged, so a server that never answers 304 does not
+trigger a rebuild. Resources are not stored in `engine.dat`: `EngineRepository` loads them into
+every engine (from the cache or freshly built) before it is shared. Without them blocking still
+works: `redirect=` rules block and scriptlets are skipped. An engine that starts with no
+resources (an install that stored its lists before 5.1, or a failed download) runs an update
+right away instead of waiting 24 h. A new `resources.json` counts as a change and rebuilds the
+engine, like a changed list.
+
+Checked on the reference TV (2026-11-14): installed over the previous version, the engine
+started from the stored lists with no resources, the immediate update downloaded
+`resources.json` and swapped in an engine with all 217 resources accepted. The instrumented
+`DownloadedResourcesTest` loads the downloaded file on the device and checks `noopjs`,
+`set-constant` (with its helpers), every `async-sugarcoat-*` redirect and the trusted restriction.
+
+Each list is built with its permission: lists of a trusted catalog entry may inject uBO's
+`requiresTrust` scriptlets ([resources/replacement-resources.md](resources/replacement-resources.md)).
+
 Measured on the reference TV (2026-11-09, default lists, 9 MB of text, debug build):
 
 | Launch | Engine ready in |
 |---|---|
 | First (download + build + save) | ~9.7 s |
 | Build from stored lists | ~4.7 s |
-| From `engine.dat` (10 MB) | ~0.76 s |
+| From `engine.dat` (10 MB) | ~0.76 s (2026-11-14: ~0.76 s including the 217 resources, 1 MB) |
 
 The engine loads in parallel with the UI and does not delay the first screen.
 

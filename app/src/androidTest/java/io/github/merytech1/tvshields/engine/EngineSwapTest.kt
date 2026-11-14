@@ -3,6 +3,7 @@ package io.github.merytech1.tvshields.engine
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.merytech1.tvshields.lists.FilterListStore
+import io.github.merytech1.tvshields.lists.StoredList
 import io.github.merytech1.tvshields.lists.UpdateResult
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +36,7 @@ class EngineSwapTest {
         }
 
         override fun hasStoredLists() = true
-        override suspend fun storedLists() = rules
+        override suspend fun storedLists() = rules.map { StoredList(it) }
         override suspend fun fingerprint() = rules.joinToString().toByteArray()
     }
 

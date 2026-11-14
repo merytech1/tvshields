@@ -5,7 +5,7 @@ use std::fmt;
 
 use adblock::lists::{FilterSet, ParseOptions};
 use adblock::request::Request;
-use adblock::resources::{InMemoryResourceStorage, Resource};
+use adblock::resources::{InMemoryResourceStorage, PermissionMask, Resource};
 use adblock::Engine;
 
 pub use adblock::cosmetic_filter_cache::UrlSpecificResources;
@@ -42,21 +42,39 @@ impl fmt::Display for EngineError {
 
 impl std::error::Error for EngineError {}
 
+/// Permission bit for uBO's `requiresTrust` scriptlets, as `tools/resources` marks them.
+pub const TRUSTED: u8 = 1;
+
 /// Blocking engine shared across WebView threads (`Send + Sync`, rules C2).
 pub struct ShieldsEngine {
     inner: Engine,
 }
 
 impl ShieldsEngine {
-    /// Builds an engine from the text of one or more filter lists.
+    /// Builds an engine from the text of one or more filter lists, with no permissions.
     pub fn from_lists<I, S>(lists: I) -> Self
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        Self::from_lists_with_permissions(lists.into_iter().map(|list| (list, 0)))
+    }
+
+    /// Builds an engine from filter lists, each with the permission bits its rules may use
+    /// (`adblock::resources::PermissionMask`). [`TRUSTED`] lets a list inject uBO's
+    /// `requiresTrust` scriptlets (`trusted-set-cookie`, …).
+    pub fn from_lists_with_permissions<I, S>(lists: I) -> Self
+    where
+        I: IntoIterator<Item = (S, u8)>,
+        S: Into<String>,
+    {
         let mut set = FilterSet::new(false);
-        for list in lists {
-            set.add_filter_list(list.into(), ParseOptions::default());
+        for (list, permission) in lists {
+            let options = ParseOptions {
+                permissions: PermissionMask::from_bits(permission),
+                ..ParseOptions::default()
+            };
+            set.add_filter_list(list.into(), options);
         }
         Self {
             inner: Engine::new_with_filter_set(set),
@@ -429,6 +447,38 @@ mod tests {
         e.use_resources_json(resources).unwrap();
         let script = e.url_cosmetic_resources(PAGE).injected_script;
         assert!(script.contains("hello"), "{script}");
+    }
+
+    // `trusted-log.js` needs the trusted permission, as uBO's `requiresTrust` scriptlets do.
+    const TRUSTED_RESOURCES: &str = r#"[
+        {
+            "name": "trusted-log.js",
+            "kind": "template",
+            "content": "Y29uc29sZS5sb2coJ3t7MX19Jyk7",
+            "permission": 1
+        }
+    ]"#;
+
+    fn trusted_script(permission: u8) -> String {
+        let rules = "news.example.com##+js(trusted-log, secret)";
+        let mut e = ShieldsEngine::from_lists_with_permissions([(rules, permission)]);
+        e.use_resources_json(TRUSTED_RESOURCES).unwrap();
+        e.url_cosmetic_resources(PAGE).injected_script
+    }
+
+    #[test]
+    fn trusted_scriptlets_need_a_trusted_list() {
+        assert!(trusted_script(TRUSTED).contains("secret"));
+        assert!(!trusted_script(0).contains("secret"));
+    }
+
+    #[test]
+    fn permissions_survive_serialization() {
+        let rules = "news.example.com##+js(trusted-log, secret)";
+        let original = ShieldsEngine::from_lists_with_permissions([(rules, TRUSTED)]);
+        let mut restored = ShieldsEngine::from_serialized(&original.serialize()).unwrap();
+        restored.use_resources_json(TRUSTED_RESOURCES).unwrap();
+        assert!(restored.url_cosmetic_resources(PAGE).injected_script.contains("secret"));
     }
 
     #[test]

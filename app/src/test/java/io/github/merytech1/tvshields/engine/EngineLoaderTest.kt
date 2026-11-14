@@ -61,6 +61,24 @@ class EngineLoaderTest {
     }
 
     @Test
+    fun `an engine without resources updates right away`() {
+        val lists = FakeLists(listOf("ads"), resources = null)
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+        assertEquals(EngineStatus.Ready, loader.status.value)
+        assertEquals(1, lists.updates)
+    }
+
+    @Test
+    fun `an engine with resources waits for the daily update`() {
+        val lists = FakeLists(listOf("ads"))
+        loader(lists).start()
+        awaitIdle()
+        assertEquals(0, lists.updates)
+    }
+
+    @Test
     fun `first launch download reports progress and ends ready`() {
         val lists = FakeLists(emptyList(), onUpdate = listOf("ads"))
         val loader = loader(lists)

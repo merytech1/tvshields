@@ -35,9 +35,11 @@ extern "system" fn native_create<'l>(
     mut env: EnvUnowned<'l>,
     _class: JClass<'l>,
     lists: JObjectArray<'l, JString<'l>>,
+    permissions: JByteArray<'l>,
 ) -> jlong {
     env.with_env(|env| -> Result<jlong, BridgeError> {
-        Ok(bridge::create(to_strings(env, &lists)?))
+        let lists = to_strings(env, &lists)?;
+        Ok(bridge::create(lists, &env.convert_byte_array(&permissions)?))
     })
     .resolve::<ThrowRuntimeExAndDefault>()
 }
@@ -151,7 +153,7 @@ macro_rules! native {
 
 fn native_methods() -> [NativeMethod<'static>; 8] {
     [
-        native!("nativeCreate", "([Ljava/lang/String;)J", native_create),
+        native!("nativeCreate", "([Ljava/lang/String;[B)J", native_create),
         native!("nativeDeserialize", "([B)J", native_deserialize),
         native!("nativeSerialize", "(J)[B", native_serialize),
         native!("nativeUseResources", "(JLjava/lang/String;)I", native_use_resources),
