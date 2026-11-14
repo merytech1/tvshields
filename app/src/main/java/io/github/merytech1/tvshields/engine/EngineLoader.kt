@@ -68,10 +68,13 @@ class EngineLoader(
                 _status.value = EngineStatus.NoLists
                 return@launch
             }
-            log("Engine ${loaded.source.name.lowercase()} in ${loaded.millis} ms")
+            log("Engine ${loaded.source.name.lowercase()} in ${loaded.millis} ms, ${loaded.resources} resources")
             // A refresh may already have swapped in a newer engine; keep that one.
             if (!_engine.compareAndSet(null, loaded.engine)) loaded.engine.close()
             _status.value = EngineStatus.Ready
+            // Lists stored by a version without resources (roadmap 5.1), or resources whose
+            // download failed: fetch them now instead of waiting for the daily update.
+            if (loaded.resources == 0) refresh()
         }
     }
 
@@ -92,7 +95,7 @@ class EngineLoader(
         log("Lists: ${update.downloaded.size} downloaded, ${update.unchanged.size} unchanged, ${update.failed.size} failed")
         val loaded = result.engine ?: return false
         val old = _engine.getAndUpdate { loaded.engine }
-        log("Engine rebuilt in ${loaded.millis} ms and swapped")
+        log("Engine rebuilt in ${loaded.millis} ms, ${loaded.resources} resources, and swapped")
         // While the first-launch screen is up, its own load finishes the job.
         if (_status.value == EngineStatus.Unprotected || _status.value == EngineStatus.Ready) {
             _status.value = EngineStatus.Ready

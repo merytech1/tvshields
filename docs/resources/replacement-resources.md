@@ -108,8 +108,13 @@ Brave's resources keep their own format (`{"mime": "application/javascript"}`, n
 
 **Trusted scriptlets.** uBO marks 34 scriptlets (`trusted-set-cookie`, `trusted-set-attr`, …) and
 the `google-ima-dai.js` redirect with `requiresTrust`. They get `"permission": 1`: adblock-rust only
-injects them for filters from a list parsed with that permission bit (roadmap 5.1 decides which
-lists are trusted), and a resource with a permission is never served as a redirect.
+injects them for filters from a list parsed with that permission bit, and a resource with a
+permission is never served as a redirect.
+
+Which lists are trusted follows Brave's catalog: every entry with `permission_mask: 1` is
+`FilterList(trusted = true)` in `DefaultLists`. That covers all five default entries (roadmap 5.1).
+The Kotlin side passes one permission byte per list to `nativeCreate`; the permissions are part
+of `engine.dat`.
 
 **What the injection must provide (roadmap 5.3).** uBO helpers read a `scriptletGlobals` object
 that uBO's own wrapper defines (`safeSelf` reads `scriptletGlobals.bcSecret`). Without it every

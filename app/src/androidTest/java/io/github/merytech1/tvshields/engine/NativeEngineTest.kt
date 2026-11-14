@@ -20,7 +20,7 @@ class NativeEngineTest {
 
     @Before
     fun create() {
-        handle = NativeEngine.nativeCreate(arrayOf(rules))
+        handle = NativeEngine.nativeCreate(arrayOf(rules), byteArrayOf(0))
     }
 
     @After
@@ -55,7 +55,7 @@ class NativeEngineTest {
 
     @Test
     fun unknownHandleThrows() {
-        val gone = NativeEngine.nativeCreate(arrayOf(rules))
+        val gone = NativeEngine.nativeCreate(arrayOf(rules), byteArrayOf(0))
         NativeEngine.nativeDestroy(gone)
         assertThrows(RuntimeException::class.java) { check(gone, "https://ads.example.net/x.js") }
     }

@@ -1,5 +1,7 @@
 package io.github.merytech1.tvshields.engine
 
+import io.github.merytech1.tvshields.lists.StoredList
+
 /** What to do with a network request. */
 sealed interface NetworkDecision {
     data object Allow : NetworkDecision
@@ -34,11 +36,17 @@ interface AdblockEngine : AutoCloseable {
 
     /** Engine state for `engine.dat` (rules T8). Resources are not included. */
     fun serialize(): ByteArray
+
+    /**
+     * Loads scriptlets and redirect resources (`resources.json`, roadmap 5.1). Call it before the
+     * engine is shared. Returns how many were accepted. Throws [RuntimeException] on invalid JSON.
+     */
+    fun useResources(json: String): Int
 }
 
 /** Creates engines, either from list texts (slow) or from a serialized engine (fast). */
 interface AdblockEngineFactory {
-    fun fromLists(lists: List<String>): AdblockEngine
+    fun fromLists(lists: List<StoredList>): AdblockEngine
 
     /** Throws [RuntimeException] if [bytes] are corrupt or come from another engine version. */
     fun deserialize(bytes: ByteArray): AdblockEngine

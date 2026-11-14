@@ -23,6 +23,7 @@ class ShieldsManagerTest {
             emptyList<String>()
 
         override fun serialize() = ByteArray(0)
+        override fun useResources(json: String) = 0
 
         override fun close() = Unit
     }

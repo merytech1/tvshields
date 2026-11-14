@@ -91,7 +91,8 @@ package io.github.merytech1.tvshields.engine
 object NativeEngine {
     init { System.loadLibrary("tvshields_engine") }
 
-    @JvmStatic external fun nativeCreate(lists: Array<String>): Long
+    // permissions[i] = permission mask of lists[i] (1 = trusted scriptlets, roadmap 5.1)
+    @JvmStatic external fun nativeCreate(lists: Array<String>, permissions: ByteArray): Long
     @JvmStatic external fun nativeDeserialize(bytes: ByteArray): Long
     @JvmStatic external fun nativeSerialize(handle: Long): ByteArray
     @JvmStatic external fun nativeUseResources(handle: Long, json: String): Int

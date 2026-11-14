@@ -10,8 +10,11 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/** An engine ready to use, where it came from and how long it took. */
-data class LoadedEngine(val engine: AdblockEngine, val source: Source, val millis: Long) {
+/**
+ * An engine ready to use, where it came from, how long it took (resources included) and how many
+ * resources it loaded.
+ */
+data class LoadedEngine(val engine: AdblockEngine, val source: Source, val millis: Long, val resources: Int = 0) {
     enum class Source { CACHE, BUILT }
 }
 
@@ -41,7 +44,10 @@ class EngineRepository(
     suspend fun load(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): LoadedEngine? = mutex.withLock {
         withContext(Dispatchers.IO) {
             val start = System.nanoTime()
-            readCache(lists.fingerprint())?.let { return@withContext LoadedEngine(it, LoadedEngine.Source.CACHE, since(start)) }
+            readCache(lists.fingerprint())?.let {
+                val resources = useResources(it)
+                return@withContext LoadedEngine(it, LoadedEngine.Source.CACHE, since(start), resources)
+            }
 
             var texts = lists.storedLists()
             if (texts.isEmpty()) {
@@ -52,7 +58,8 @@ class EngineRepository(
 
             val engine = factory.fromLists(texts)
             writeCache(engine, lists.fingerprint())
-            LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start))
+            val resources = useResources(engine)
+            LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start), resources)
         }
     }
 
@@ -70,7 +77,22 @@ class EngineRepository(
             if (texts.isEmpty()) return@withContext RefreshResult(update, null)
             val engine = factory.fromLists(texts)
             writeCache(engine, lists.fingerprint())
-            RefreshResult(update, LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start)))
+            val resources = useResources(engine)
+            RefreshResult(update, LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start), resources))
+        }
+    }
+
+    /**
+     * Resources are not in the cache, so every engine gets them here, before anyone uses it.
+     * Without them (not downloaded yet, or invalid) blocking still works: `redirect=` rules
+     * block and scriptlets are skipped.
+     */
+    private suspend fun useResources(engine: AdblockEngine): Int {
+        val json = lists.storedResources() ?: return 0
+        return try {
+            engine.useResources(json)
+        } catch (e: RuntimeException) {
+            0
         }
     }
 
@@ -111,7 +133,8 @@ class EngineRepository(
         /**
          * Bump when the way the engine is built changes, to discard old caches.
          * 2: `css-validation` (structured procedural filters, roadmap 4.3).
+         * 3: per-list permissions (trusted scriptlets, roadmap 5.1).
          */
-        const val FORMAT_VERSION: Byte = 2
+        const val FORMAT_VERSION: Byte = 3
     }
 }

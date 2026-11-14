@@ -29,6 +29,35 @@ class EngineRepositoryTest {
     }
 
     @Test
+    fun `built and cached engines both get the resources`() = runBlocking {
+        val lists = FakeLists(listOf("ads"), resources = "noop.js\nset-constant.js")
+        val built = repository(lists).load()!!
+        val cached = repository(lists).load()!!
+
+        assertEquals(LoadedEngine.Source.CACHE, cached.source)
+        assertEquals(2, built.resources)
+        assertEquals(2, cached.resources)
+        assertEquals("noop.js\nset-constant.js", (cached.engine as FakeEngine).resourcesJson)
+    }
+
+    @Test
+    fun `missing or invalid resources still give an engine`() = runBlocking {
+        val missing = repository(FakeLists(listOf("ads"), resources = null)).load()!!
+        assertEquals(0, missing.resources)
+
+        file.delete()
+        val invalid = repository(FakeLists(listOf("ads"), resources = "invalid")).load()!!
+        assertEquals(0, invalid.resources)
+        assertEquals(NetworkDecision.Block, invalid.engine.checkRequest("https://ads.example/", "", "script"))
+    }
+
+    @Test
+    fun `list trust reaches the engine factory`() = runBlocking {
+        repository(FakeLists(listOf("trusted ads", "other"))).load()
+        assertEquals(listOf(true, false), factory.lastLists.map { it.trusted })
+    }
+
+    @Test
     fun `second load comes from the cache`() = runBlocking {
         val lists = FakeLists(listOf("ads"))
         repository(lists).load()

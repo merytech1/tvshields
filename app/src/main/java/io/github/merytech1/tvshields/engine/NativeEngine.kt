@@ -13,8 +13,11 @@ object NativeEngine {
         System.loadLibrary("tvshields_engine")
     }
 
-    /** Builds an engine from filter list texts; returns its handle. */
-    @JvmStatic external fun nativeCreate(lists: Array<String>): Long
+    /**
+     * Builds an engine from filter list texts; returns its handle. `permissions[i]` is the
+     * permission mask of `lists[i]` (1 = trusted scriptlets).
+     */
+    @JvmStatic external fun nativeCreate(lists: Array<String>, permissions: ByteArray): Long
 
     @JvmStatic external fun nativeDeserialize(bytes: ByteArray): Long
 

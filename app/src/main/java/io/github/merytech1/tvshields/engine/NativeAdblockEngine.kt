@@ -1,5 +1,6 @@
 package io.github.merytech1.tvshields.engine
 
+import io.github.merytech1.tvshields.lists.StoredList
 import org.json.JSONArray
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -37,14 +38,23 @@ class NativeAdblockEngine private constructor(private val handle: Long) : Adbloc
 
     override fun serialize(): ByteArray = NativeEngine.nativeSerialize(handle)
 
+    override fun useResources(json: String): Int = NativeEngine.nativeUseResources(handle, json)
+
     /** Releases the native engine. Calls still running finish safely (the engine is reference counted). */
     override fun close() {
         if (closed.compareAndSet(false, true)) NativeEngine.nativeDestroy(handle)
     }
 
     companion object Factory : AdblockEngineFactory {
-        override fun fromLists(lists: List<String>): AdblockEngine =
-            NativeAdblockEngine(NativeEngine.nativeCreate(lists.toTypedArray()))
+        override fun fromLists(lists: List<StoredList>): AdblockEngine = NativeAdblockEngine(
+            NativeEngine.nativeCreate(
+                lists.map { it.text }.toTypedArray(),
+                ByteArray(lists.size) { if (lists[it].trusted) TRUSTED else 0 },
+            ),
+        )
+
+        /** Permission bit of uBO's trusted scriptlets (engine/src/engine.rs `TRUSTED`). */
+        private const val TRUSTED: Byte = 1
 
         override fun deserialize(bytes: ByteArray): AdblockEngine =
             NativeAdblockEngine(NativeEngine.nativeDeserialize(bytes))

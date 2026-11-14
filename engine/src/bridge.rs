@@ -80,8 +80,13 @@ fn get(handle: Handle) -> Result<SharedEngine> {
         .ok_or(BridgeError::InvalidHandle(handle))
 }
 
-pub fn create(lists: Vec<String>) -> Handle {
-    register(ShieldsEngine::from_lists(lists))
+/// `permissions[i]` is the permission mask of `lists[i]`; a missing entry means none.
+pub fn create(lists: Vec<String>, permissions: &[u8]) -> Handle {
+    let lists = lists
+        .into_iter()
+        .enumerate()
+        .map(|(i, list)| (list, permissions.get(i).copied().unwrap_or(0)));
+    register(ShieldsEngine::from_lists_with_permissions(lists))
 }
 
 pub fn deserialize(bytes: &[u8]) -> Result<Handle> {
@@ -165,8 +170,8 @@ mod tests {
 
     #[test]
     fn handles_are_unique_and_never_zero() {
-        let a = create(rules());
-        let b = create(rules());
+        let a = create(rules(), &[]);
+        let b = create(rules(), &[]);
         assert_ne!(a, 0);
         assert_ne!(a, b);
         destroy(a);
@@ -175,7 +180,7 @@ mod tests {
 
     #[test]
     fn check_request_through_handle() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let blocked = check_request(h, "https://ads.example.net/x.png", PAGE, "image", "GET");
         let allowed = check_request(h, "https://cdn.example.com/x.png", PAGE, "image", "GET");
         assert_eq!(blocked.unwrap().as_deref(), Some("B"));
@@ -185,7 +190,7 @@ mod tests {
 
     #[test]
     fn released_handle_is_rejected() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         assert!(destroy(h));
         assert!(!destroy(h));
         let err = check_request(h, "https://ads.example.net/x.png", PAGE, "image", "GET");
@@ -200,7 +205,7 @@ mod tests {
 
     #[test]
     fn cosmetic_json_has_expected_fields() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let json: serde_json::Value =
             serde_json::from_str(&cosmetic_resources(h, PAGE).unwrap()).unwrap();
         assert_eq!(json["hide_selectors"], serde_json::json!([".sponsored"]));
@@ -213,7 +218,7 @@ mod tests {
 
     #[test]
     fn hidden_selectors_json_is_an_array() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let json = hidden_selectors(h, &["ad-banner".into(), "content".into()], &[], vec![]);
         assert_eq!(json.unwrap(), r#"[".ad-banner"]"#);
         let excepted = hidden_selectors(h, &["ad-banner".into()], &[], vec![".ad-banner".into()]);
@@ -223,7 +228,7 @@ mod tests {
 
     #[test]
     fn serialize_and_deserialize_through_handles() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let bytes = serialize(h).unwrap();
         destroy(h);
         let restored = deserialize(&bytes).unwrap();
@@ -239,7 +244,7 @@ mod tests {
 
     #[test]
     fn invalid_resources_are_reported() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         assert!(matches!(use_resources(h, "nope"), Err(BridgeError::Engine(_))));
         assert_eq!(use_resources(h, "[]").unwrap(), 0);
         destroy(h);
@@ -247,7 +252,7 @@ mod tests {
 
     #[test]
     fn engine_survives_release_during_use() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let in_flight = get(h).unwrap();
         destroy(h);
         let decision =
@@ -257,7 +262,7 @@ mod tests {
 
     #[test]
     fn concurrent_checks_share_one_engine() {
-        let h = create(rules());
+        let h = create(rules(), &[]);
         let threads: Vec<_> = (0..8)
             .map(|_| {
                 std::thread::spawn(move || {
