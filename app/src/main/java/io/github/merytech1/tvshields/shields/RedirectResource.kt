@@ -11,6 +11,9 @@ class RedirectResource(val mimeType: String, val bytes: ByteArray) {
     /** Charset for text types; WebView expects null for binary ones. */
     val encoding: String? get() = if (isText(mimeType)) "utf-8" else null
 
+    /** Counted as "Scripts replaced" in the Shields panel; other stand-ins count as blocked. */
+    val isScript: Boolean get() = mimeType == "application/javascript" || mimeType == "text/javascript"
+
     companion object {
         /**
          * Parses the engine's `data:<mime>;base64,<payload>` URL (adblock-rust always encodes

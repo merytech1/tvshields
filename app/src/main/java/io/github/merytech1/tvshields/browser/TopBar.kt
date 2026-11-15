@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -32,7 +33,7 @@ import androidx.tv.material3.Icon
 import io.github.merytech1.tvshields.R
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
-/** Top bar (design.md §5 and §9): back, reload, home and the address bar. */
+/** Top bar (design.md §5 and §9): back, reload, home, the address bar and the Shields badge. */
 @Composable
 fun TopBar(
     state: BrowserUiState,
@@ -41,6 +42,10 @@ fun TopBar(
     onBack: () -> Unit,
     onReload: () -> Unit,
     onHome: () -> Unit,
+    shieldsActive: Boolean,
+    panelOpen: Boolean,
+    badgeFocus: FocusRequester,
+    onShields: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalTvShieldsColors.current
@@ -61,6 +66,15 @@ fun TopBar(
             focusRequester = addressFocus,
             onSubmit = onSubmit,
             modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        ShieldsBadge(
+            count = state.shields.total,
+            active = shieldsActive,
+            panelOpen = panelOpen,
+            enabled = onPage,
+            onClick = onShields,
+            modifier = Modifier.focusRequester(badgeFocus),
         )
     }
 }

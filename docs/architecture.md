@@ -540,7 +540,7 @@ No live suggestions (rules C10).
 | General settings, chosen search provider, sites with Shields off | Jetpack DataStore |
 | Downloaded lists, `resources.json` | `filesDir/lists/` |
 | Serialized engine | `filesDir/engine.dat` (includes the crate version; regenerated if it changes) |
-| Block counters | In memory per tab. The cumulative total goes to DataStore. |
+| Block counters | In memory per tab (`PageShields` in the browser state). `ShieldsWebViewClient` resets them on each main-frame request and counts every block and redirect; a page restored from the back-forward cache, with no request, starts at zero. The cumulative total goes to DataStore (not stored yet). |
 
 No synced history and no accounts.
 
