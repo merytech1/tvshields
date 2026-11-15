@@ -13,6 +13,8 @@ import org.json.JSONObject
  */
 class CosmeticFilter(
     private val perf: ShieldsPerf = ShieldsPerf.Disabled,
+    /** The per-site switch (rules C5): a page on a site with Shields off gets nothing. */
+    private val isSiteOff: (pageUrl: String) -> Boolean = { false },
     private val engine: () -> AdblockEngine?,
 ) {
 
@@ -23,7 +25,7 @@ class CosmeticFilter(
      * [hiddenSelectors] for the filters to respect `#@#` rules. [scriptlets] is the engine's
      * `injected_script`: the `+js()` scriptlets for the page, to be wrapped by [scriptletScript].
      */
-    fun resourcesFor(url: String): CosmeticResources? = perf.measure(ShieldsPerf.Op.COSMETIC) {
+    fun resourcesFor(url: String): CosmeticResources? = if (isSiteOff(url)) null else perf.measure(ShieldsPerf.Op.COSMETIC) {
         val current = engine() ?: return@measure null
         cached(current, url)?.let { return@measure it.resources }
         val resources = resources(current, url)

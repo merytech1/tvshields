@@ -15,6 +15,11 @@
     <string name="action_try_again">Try again</string>
     <string name="action_continue_unprotected">Continue without protection</string>
     <string name="shields_on_title">Shields on</string>
+    <string name="shields_off_title">Shields off for this site</string>
+    <string name="shields_off_message">Ads and trackers on this site load as usual. Your other sites keep their Shields.</string>
+    <string name="shields_site_toggle">Shields on this site</string>
+    <string name="shields_state_on">On</string>
+    <string name="shields_state_off">Off</string>
     <string name="shields_no_lists_title">Shields have no lists</string>
     <string name="shields_no_lists_message">Nothing is blocked until the filter lists download.</string>
     <plurals name="shields_blocked_on_page">

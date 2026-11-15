@@ -187,6 +187,24 @@ page (accepted limitation).
 Checked on the reference TV (2026-11-09, default lists): adblock-tester.com scores 95/100
 (27 requests blocked); theverge.com loads normally with 16 ad and tracker requests blocked.
 
+**Per-site switch (rules P3, C5; roadmap 6.2).** The Shields panel turns Shields off for the
+current page's site. The site is the host, lowercase, without `www.`. Turning it off on
+`example.com` also covers its subdomains, but not the other way round. `SiteShieldsRepository`
+keeps the list in DataStore (`shields_off_sites`) and an in-memory copy:
+
+- `ShieldsManager` and `CosmeticFilter` read the in-memory copy first, using the page URL. The
+  engine never sees the requests of a page on a site that is off, and that page gets no CSS, no
+  generic or procedural script and no scriptlets.
+- A change applies at once and is written in the background.
+- The page reloads after the change. `CosmeticInjector.invalidate()` makes the next registration
+  ask again for the same URL.
+- At start-up, the first page may load before DataStore has been read (a few milliseconds).
+  That page keeps Shields on.
+
+Checked on the reference TV (2026-11-15): theverge.com showed 13 blocked with Shields on. After
+turning them off and the reload it showed 0. After restarting the app, the site was still off
+with 0 blocked. Turned back on, it showed 17 blocked.
+
 ### 5.2 Cosmetic filtering (1.2)
 
 Three parts, as in Brave:
