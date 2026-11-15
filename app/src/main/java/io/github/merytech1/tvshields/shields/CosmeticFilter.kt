@@ -20,7 +20,8 @@ class CosmeticFilter(
      * What the engine knows about [url]. [css] is null when there is nothing URL-specific to
      * hide; [procedural] is the JSON array of procedural filters for `assets/js/procedural.js`;
      * [generichide] disables generic filtering, and [exceptions] must be passed back to
-     * [hiddenSelectors] for the filters to respect `#@#` rules.
+     * [hiddenSelectors] for the filters to respect `#@#` rules. [scriptlets] is the engine's
+     * `injected_script`: the `+js()` scriptlets for the page, to be wrapped by [scriptletScript].
      */
     fun resourcesFor(url: String): CosmeticResources? = perf.measure(ShieldsPerf.Op.COSMETIC) {
         val current = engine() ?: return@measure null
@@ -74,6 +75,7 @@ class CosmeticFilter(
             generichide = resources.optBoolean("generichide", false),
             exceptions = resources.stringList("exceptions"),
             procedural = procedural(resources, raw),
+            scriptlets = resources.optString("injected_script").takeIf(String::isNotBlank),
         )
     }
 
@@ -145,4 +147,5 @@ data class CosmeticResources(
     val generichide: Boolean,
     val exceptions: List<String>,
     val procedural: String? = null,
+    val scriptlets: String? = null,
 )

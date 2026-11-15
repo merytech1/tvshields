@@ -26,6 +26,20 @@ internal fun cosmeticScript(css: String): String = """
     })();
 """.trimIndent()
 
+/**
+ * Wraps the engine's `injected_script` (roadmap 5.3). The uBO scriptlets expect a
+ * `scriptletGlobals` object in scope, as uBO's own wrapper provides; without it `safeSelf()`
+ * throws and every scriptlet fails silently. [guard] is a per-process random name: the flag it
+ * sets on `window` keeps the C4 fallback from running the scriptlets a second time.
+ */
+internal fun scriptletScript(code: String, guard: String): String = """
+    (function () {
+      var guard = ${jsString(guard)};
+      if (Object.prototype.hasOwnProperty.call(window, guard)) return;
+      Object.defineProperty(window, guard, { value: true });
+      const scriptletGlobals = {};
+""".trimIndent() + "\n" + code + "\n})();"
+
 /** Calls the generic script's own `<style>` element with selectors the engine just matched. */
 internal fun applyGenericCosmeticCss(css: String): String =
     "(function(){var f=window.__tvshieldsApplyCosmeticCss;if(f)f(${jsString(css)});})();"

@@ -33,6 +33,28 @@ class CosmeticScriptTest {
     }
 
     @Test
+    fun `wraps scriptlets with the globals uBO expects`() {
+        val script = scriptletScript("try { abortOnPropertyRead(\"adblock\") } catch ( e ) { }", "tvshields_x")
+
+        assertTrue(script, script.startsWith("(function () {"))
+        assertTrue(script, script.contains("const scriptletGlobals = {};"))
+        assertTrue(script, script.contains("try { abortOnPropertyRead(\"adblock\") } catch ( e ) { }"))
+        assertTrue(script, script.endsWith("})();"))
+        // Scriptlet code comes after the globals it reads.
+        assertTrue(script.indexOf("scriptletGlobals") < script.indexOf("abortOnPropertyRead"))
+    }
+
+    @Test
+    fun `scriptlets run once per document`() {
+        val script = scriptletScript("noop()", "tvshields_x")
+
+        assertTrue(script, script.contains("""var guard = "tvshields_x";"""))
+        assertTrue(script, script.contains("if (Object.prototype.hasOwnProperty.call(window, guard)) return;"))
+        assertTrue(script, script.contains("Object.defineProperty(window, guard, { value: true });"))
+        assertTrue(script.indexOf("hasOwnProperty") < script.indexOf("noop()"))
+    }
+
+    @Test
     fun `escapes css that could end the javascript string`() {
         assertEquals(""""a\"b\\c\nd"""", jsString("a\"b\\c\nd"))
     }

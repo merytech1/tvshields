@@ -14,6 +14,7 @@ import io.github.merytech1.tvshields.shields.CosmeticMessage
 import io.github.merytech1.tvshields.shields.CosmeticResources
 import io.github.merytech1.tvshields.shields.applyGenericCosmeticCss
 import io.github.merytech1.tvshields.shields.cosmeticScript
+import io.github.merytech1.tvshields.shields.scriptletScript
 import io.github.merytech1.tvshields.shields.startProceduralScript
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -36,7 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * reporting new classes and ids; [CosmeticFilter] asks the engine off the UI thread and the
  * matching selectors are appended to the page's own `<style>` element. The procedural script
  * (`assets/js/procedural.js`) evaluates `:has-text`, `:upward` and the other operators from the
- * filters [CosmeticFilter] validated for the page.
+ * filters [CosmeticFilter] validated for the page. The page's `+js()` scriptlets run first, before
+ * any page script, so they can neutralise ad-block detectors (roadmap 5.3).
  *
  * Document-start scripts are optional (rules C4): the scripts are re-applied in `onPageStarted`,
  * and generic filtering is skipped when `WEB_MESSAGE_LISTENER` is unavailable.
@@ -173,7 +176,7 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
     /**
      * Re-applies the scripts after the page starts: the only injection without
      * `DOCUMENT_START_SCRIPT` (rules C4) and a safety net when document-start registration
-     * happened too late. `cosmetic.js` ignores the second run.
+     * happened too late. `cosmetic.js` and the scriptlets' run-once flag ignore the second run.
      */
     fun injectFallback(view: WebView, url: String) {
         if (!isHttp(url)) return
@@ -202,7 +205,12 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
     }
 
     private fun buildScript(resources: CosmeticResources): String = buildString {
-        resources.css?.let { append(cosmeticScript(it)) }
+        // Scriptlets go first: they must patch the page's globals before its own scripts run.
+        resources.scriptlets?.let { append(scriptletScript(it, SCRIPTLET_GUARD)) }
+        resources.css?.let {
+            if (isNotEmpty()) append('\n')
+            append(cosmeticScript(it))
+        }
         if (!resources.generichide && supportsWebMessages && genericScript.isNotBlank()) {
             if (isNotEmpty()) append('\n')
             append(genericScript)
@@ -291,6 +299,9 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
         const val JS_OBJECT = "tvshieldsCosmetic"
         const val GENERIC_SCRIPT_ASSET = "js/cosmetic.js"
         const val PROCEDURAL_SCRIPT_ASSET = "js/procedural.js"
+
+        /** Random per process, so a page cannot predict or pre-set the scriptlets' run-once flag. */
+        val SCRIPTLET_GUARD = "tvshields_" + UUID.randomUUID().toString().replace("-", "")
     }
 }
 

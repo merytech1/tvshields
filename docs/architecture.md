@@ -284,6 +284,38 @@ Checked on the reference TV (2026-11-14, default lists): theverge.com gets uBO's
 `gpt.js` (twice) and `apstag.js`; inside the page `googletag.apiReady` is `true` and `apstag`
 exists although the real scripts never reached the network.
 
+**Injecting scriptlets (roadmap 5.3).** `CosmeticFilter` keeps the engine's `injected_script`
+(the page's `+js()` scriptlets with their helper functions) and `CosmeticInjector` puts it first
+in the same document-start script as the cosmetic CSS (§5.2), so it runs before any page script.
+The code is wrapped (`scriptletScript`) in a function that:
+
+- declares `const scriptletGlobals = {}`. uBO's scriptlets expect it from uBO's own wrapper;
+  without it `safeSelf()` throws and every scriptlet fails silently. Empty is enough: they only
+  read the optional `bcSecret` (logger), `logLevel` and `warOrigin`.
+- sets a non-enumerable run-once flag on `window`, with a random name per app process. The
+  `onPageStarted` fallback (rules C4) repeats the whole script; the flag keeps the scriptlets
+  from running twice in one document.
+
+Limits:
+
+- The scriptlets run in the page's main world. In uBO, 22 of them run in an isolated world. Here
+  the page can see what they define, as in Brave on Android.
+- They run in time only when the script was registered before the load began (address bar,
+  links, back, reload). For a server redirect to another origin, only the fallback runs them,
+  and that is after the page's first scripts.
+- Frames from another origin do not receive them.
+
+Checked on the reference TV (2026-11-15):
+
+- `ScriptletInjectionTest` loads a page with the classic bait-script detector (`canRunAds`) in
+  a real WebView, with the engine and the downloaded `resources.json`. With
+  `||detector.test/ads.js^` alone the warning shows. With
+  `detector.test##+js(set, canRunAds, true)` it does not, and the scriptlets ran once.
+- On coolmathgames.com (default lists), `displayAdblockOverlay` is pinned to `false` by
+  `set-constant`.
+- bild.de still shows its ad-block wall. The wall reacts to the blocked `html-load.com/sdk.js`
+  (AdShield) and to Sourcepoint's `pv-data` request, which the current list rules do not undo.
+
 Debug builds enable WebView debugging (`WebView.setWebContentsDebuggingEnabled`), so a page on
 the TV can be inspected from `chrome://inspect` or through the DevTools protocol:
 `adb forward tcp:9333 localabstract:webview_devtools_remote_<pid>`. Release builds do not.

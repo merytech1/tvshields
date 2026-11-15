@@ -76,6 +76,23 @@ class CosmeticFilterTest {
     }
 
     @Test
+    fun `keeps the injected scriptlets`() {
+        val filter = CosmeticFilter {
+            FakeEngine("""{"hide_selectors":[],"injected_script":"try { setConstant(\"ads\", \"true\") } catch ( e ) { }"}""")
+        }
+
+        assertEquals("""try { setConstant("ads", "true") } catch ( e ) { }""", filter.resourcesFor(page)?.scriptlets)
+    }
+
+    @Test
+    fun `an empty injected script means no scriptlets`() {
+        val filter = CosmeticFilter { FakeEngine("""{"hide_selectors":[],"injected_script":"  "}""") }
+
+        assertNull(filter.resourcesFor(page)!!.scriptlets)
+        assertNull(CosmeticFilter { FakeEngine("""{"hide_selectors":[]}""") }.resourcesFor(page)!!.scriptlets)
+    }
+
+    @Test
     fun `generichide defaults to false`() {
         val filter = CosmeticFilter { FakeEngine("""{"hide_selectors":[]}""") }
 
