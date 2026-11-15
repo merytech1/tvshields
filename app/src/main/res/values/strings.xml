@@ -14,4 +14,13 @@
     <string name="no_connection_message">Shields have no lists yet. Connect to the internet, or continue without protection.</string>
     <string name="action_try_again">Try again</string>
     <string name="action_continue_unprotected">Continue without protection</string>
+    <string name="shields_on_title">Shields on</string>
+    <string name="shields_no_lists_title">Shields have no lists</string>
+    <string name="shields_no_lists_message">Nothing is blocked until the filter lists download.</string>
+    <plurals name="shields_blocked_on_page">
+        <item quantity="one">%d blocked on this page</item>
+        <item quantity="other">%d blocked on this page</item>
+    </plurals>
+    <string name="shields_ads_and_trackers">Ads and trackers</string>
+    <string name="shields_scripts_replaced">Scripts replaced</string>
 </resources>

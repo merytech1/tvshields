@@ -232,7 +232,7 @@ The building blocks the mockups and Compose code are made from.
 | **Top bar** | Back, reload, home, address bar, Shields badge, settings. Height 64 dp |
 | **Address bar** | `surface-raised` field, `body` text; shows the domain when idle and the full URL when focused. OK opens the TV keyboard |
 | **Shields badge** | Pill with shield icon + blocked count. On: `accent` / `on-accent`. Off for this site: `warning` outline + shield-off icon |
-| **Shields panel** | Side sheet: site name, on/off toggle (C5), counters by type (ads, trackers, scripts), "Report a broken site" later |
+| **Shields panel** | Side sheet: site name, on/off toggle (C5), counters by type, "Report a broken site" later. Two counters: "Ads and trackers" (blocked requests, and stand-ins that are not scripts) and "Scripts replaced". The engine does not say which list a rule came from, so ads and trackers cannot be told apart |
 | **List row** | Icon, title, optional secondary line, optional trailing value or toggle. Min height 64 dp |
 | **Toggle** | Track + thumb; on = `accent`. Always paired with a text state ("On" / "Off") |
 | **Button** | Primary: `accent` fill (one per screen). Secondary: `surface-raised` fill. Min 48 dp high |

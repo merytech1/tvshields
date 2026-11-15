@@ -38,6 +38,7 @@ class ShieldsWebViewClient(
         if (mainFrame) {
             pageUrl = url
             shields.perf.pageStarted()
+            viewModel.onDocumentRequested(url)
         }
         val accept = request.requestHeaders.entries.firstOrNull { it.key.equals("Accept", ignoreCase = true) }?.value
 
@@ -50,6 +51,7 @@ class ShieldsWebViewClient(
         return when (decision) {
             NetworkDecision.Allow, is NetworkDecision.Rewrite -> null
             NetworkDecision.Block -> {
+                viewModel.onBlocked()
                 if (logBlocked) Log.d(TAG, "Blocked $url")
                 if (mainFrame) blockedPage(url) else emptyResponse()
             }
@@ -57,6 +59,7 @@ class ShieldsWebViewClient(
             is NetworkDecision.Redirect -> {
                 val resource = if (mainFrame) null else RedirectResource.fromDataUrl(decision.dataUrl)
                 if (logBlocked) Log.d(TAG, "${if (resource != null) "Redirected (${resource.mimeType})" else "Blocked"} $url")
+                if (resource?.isScript == true) viewModel.onScriptReplaced() else viewModel.onBlocked()
                 when {
                     mainFrame -> blockedPage(url)
                     resource != null -> redirectResponse(resource)

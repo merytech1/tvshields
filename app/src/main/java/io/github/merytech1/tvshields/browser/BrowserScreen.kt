@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
@@ -51,7 +52,12 @@ import io.github.merytech1.tvshields.shields.ShieldsManager
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
 @Composable
-fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetics: CosmeticFilter) {
+fun BrowserScreen(
+    viewModel: BrowserViewModel,
+    shields: ShieldsManager,
+    cosmetics: CosmeticFilter,
+    shieldsActive: Boolean,
+) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
     val context = LocalContext.current
@@ -62,6 +68,8 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
     var cursorPosition by remember { mutableStateOf(Offset.Zero) }
     var moveRequests by remember { mutableIntStateOf(0) }
     var webViewFocused by remember { mutableStateOf(false) }
+    val badgeFocus = remember { FocusRequester() }
+    var panelOpen by remember { mutableStateOf(false) }
 
     val injector = remember(context) { CosmeticInjector(context, cosmetics) }
     val webView = remember {
@@ -152,6 +160,10 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
                 webView.reload()
             },
             onHome = viewModel::onHome,
+            shieldsActive = shieldsActive,
+            panelOpen = panelOpen,
+            badgeFocus = badgeFocus,
+            onShields = { panelOpen = !panelOpen },
             // Overscan safe area: 48 dp sides, 27 dp top (design.md §5). Drawn after the WebView
             // (zIndex): on the reference TV the WebView paints its background outside its bounds.
             modifier = Modifier
@@ -186,12 +198,32 @@ fun BrowserScreen(viewModel: BrowserViewModel, shields: ShieldsManager, cosmetic
         ) {
             AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
             if (state.currentUrl.isEmpty()) StartPage()
+            // Below the top bar, at its right edge, so the badge stays visible (design.md §14).
+            if (panelOpen && state.currentUrl.isNotEmpty()) {
+                ShieldsPanel(
+                    site = displaySite(state.currentUrl),
+                    shields = state.shields,
+                    active = shieldsActive,
+                    onClose = {
+                        panelOpen = false
+                        badgeFocus.requestFocus()
+                    },
+                    onFocusLost = { panelOpen = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 48.dp)
+                        .fillMaxWidth(PANEL_WIDTH),
+                )
+            }
             if (webViewFocused && state.currentUrl.isNotEmpty()) {
                 CursorOverlay(position = cursorPosition, modifier = Modifier.fillMaxSize())
             }
         }
     }
 }
+
+/** Shields panel width as a fraction of the screen (design.md mockups: 36 % of the frame). */
+private const val PANEL_WIDTH = 0.36f
 
 /** Whether the OK key currently held has become a long press. */
 private class OkPress {

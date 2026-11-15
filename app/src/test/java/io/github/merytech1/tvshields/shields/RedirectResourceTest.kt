@@ -2,7 +2,9 @@ package io.github.merytech1.tvshields.shields
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RedirectResourceTest {
@@ -25,6 +27,14 @@ class RedirectResourceTest {
         assertEquals("image/gif", resource.mimeType)
         assertNull(resource.encoding)
         assertEquals("GIF89a", resource.bytes.copyOfRange(0, 6).decodeToString())
+    }
+
+    @Test
+    fun `only javascript counts as a replaced script`() {
+        assertTrue(RedirectResource("application/javascript", ByteArray(0)).isScript)
+        assertTrue(RedirectResource("text/javascript", ByteArray(0)).isScript)
+        assertFalse(RedirectResource("image/gif", ByteArray(0)).isScript)
+        assertFalse(RedirectResource("text/plain", ByteArray(0)).isScript)
     }
 
     @Test
