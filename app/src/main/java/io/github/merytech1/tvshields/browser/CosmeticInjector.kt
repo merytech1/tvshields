@@ -165,6 +165,14 @@ class CosmeticInjector(context: Context, private val filter: CosmeticFilter) {
     }
 
     /**
+     * Forgets the registered page, so the next [prepare] for the same URL asks again. Needed when
+     * the answer changed without a new URL (Shields turned off or on for the site). UI thread.
+     */
+    fun invalidate() {
+        preparedUrl = null
+    }
+
+    /**
      * [prepare] for UI-thread callers that can wait: the engine is asked on a background thread,
      * so [prepare] finds the answer cached and the UI does not stall (rules T7).
      */

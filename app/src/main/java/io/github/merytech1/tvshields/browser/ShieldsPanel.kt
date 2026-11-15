@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +47,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Icon
@@ -53,18 +56,38 @@ import androidx.tv.material3.Text
 import io.github.merytech1.tvshields.R
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
+/** What the badge and the panel show for the current page. */
+enum class ShieldsStatus {
+    ON,
+
+    /** Turned off for this site (rules P3). */
+    OFF_FOR_SITE,
+
+    /** The engine has no lists yet: nothing is blocked anywhere. */
+    NO_LISTS,
+    ;
+
+    companion object {
+        fun of(offForSite: Boolean, engineReady: Boolean) = when {
+            offForSite -> OFF_FOR_SITE
+            !engineReady -> NO_LISTS
+            else -> ON
+        }
+    }
+}
+
 /** Counters change in place; tabular figures keep them from jumping (design.md §4). */
 private fun TextStyle.tabular() = copy(fontFeatureSettings = "tnum")
 
 /**
- * Shields badge in the top bar (design.md §9): shield icon and the page's blocked count. Accent
- * fill normally, accent-container while the panel is open, warning outline when Shields have no
- * lists.
+ * Shields badge in the top bar (design.md §9). On: accent fill with the page's blocked count, or
+ * accent-container while the panel is open. Off for this site: warning outline, shield-off icon
+ * and "Off". No lists: warning outline without a count.
  */
 @Composable
 fun ShieldsBadge(
     count: Int,
-    active: Boolean,
+    status: ShieldsStatus,
     panelOpen: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -73,15 +96,16 @@ fun ShieldsBadge(
     val colors = LocalTvShieldsColors.current
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.04f else 1f, tween(150), label = "focusScale")
+    val on = status == ShieldsStatus.ON
     val (fill, content) = when {
-        !active -> Color.Transparent to colors.warning
+        !on -> Color.Transparent to colors.warning
         panelOpen -> colors.accentContainer to colors.onAccentContainer
         else -> colors.accent to colors.onAccent
     }
-    val description = if (active) {
-        pluralStringResource(R.plurals.shields_blocked_on_page, count, count)
-    } else {
-        stringResource(R.string.shields_no_lists_title)
+    val description = when (status) {
+        ShieldsStatus.ON -> pluralStringResource(R.plurals.shields_blocked_on_page, count, count)
+        ShieldsStatus.OFF_FOR_SITE -> stringResource(R.string.shields_off_title)
+        ShieldsStatus.NO_LISTS -> stringResource(R.string.shields_no_lists_title)
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -94,42 +118,48 @@ fun ShieldsBadge(
             .border(3.dp, if (focused) colors.accent else Color.Transparent, RoundedCornerShape(50))
             .padding(5.dp)
             .background(fill, RoundedCornerShape(50))
-            .then(if (active) Modifier else Modifier.border(2.dp, colors.warning, RoundedCornerShape(50)))
+            .then(if (on) Modifier else Modifier.border(2.dp, colors.warning, RoundedCornerShape(50)))
             .height(48.dp)
             .padding(horizontal = 16.dp),
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_shield_check),
+            painter = painterResource(if (status == ShieldsStatus.OFF_FOR_SITE) R.drawable.ic_shield_off else R.drawable.ic_shield_check),
             contentDescription = null,
             tint = content,
             modifier = Modifier.size(24.dp),
         )
-        if (active) {
+        val label = when (status) {
+            ShieldsStatus.ON -> count.toString()
+            ShieldsStatus.OFF_FOR_SITE -> stringResource(R.string.shields_state_off)
+            ShieldsStatus.NO_LISTS -> null
+        }
+        if (label != null) {
             Spacer(Modifier.width(8.dp))
-            Text(text = count.toString(), style = MaterialTheme.typography.labelLarge.tabular(), color = content)
+            Text(text = label, style = MaterialTheme.typography.labelLarge.tabular(), color = content)
         }
     }
 }
 
 /**
- * Shields panel (design.md §9, roadmap 6.1): status, site and what was blocked on this page. It
- * takes focus when it opens. Back or Left closes it and [onClose] returns focus to the badge; Up
- * leaves it for the top bar, and losing focus closes it too ([onFocusLost]), so focus is never
- * left behind it.
+ * Shields panel (design.md §9, roadmaps 6.1 and 6.2): status, site, the per-site switch and what
+ * was blocked on this page. The switch takes focus when the panel opens. Back or Left closes it
+ * and [onClose] returns focus to the badge; Up leaves it for the top bar, and losing focus closes
+ * it too ([onFocusLost]), so focus is never left behind it.
  */
 @Composable
 fun ShieldsPanel(
     site: String,
     shields: PageShields,
-    active: Boolean,
+    status: ShieldsStatus,
+    onToggle: () -> Unit,
     onClose: () -> Unit,
     onFocusLost: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalTvShieldsColors.current
-    val firstRow = remember { FocusRequester() }
+    val toggleFocus = remember { FocusRequester() }
     var hadFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { firstRow.requestFocus() }
+    LaunchedEffect(Unit) { toggleFocus.requestFocus() }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -159,19 +189,25 @@ fun ShieldsPanel(
             .focusGroup()
             .background(colors.surface, RoundedCornerShape(12.dp))
             .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-            .padding(24.dp),
+            .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                painter = painterResource(R.drawable.ic_shield_check),
+                painter = painterResource(if (status == ShieldsStatus.OFF_FOR_SITE) R.drawable.ic_shield_off else R.drawable.ic_shield_check),
                 contentDescription = null,
-                tint = if (active) colors.accent else colors.warning,
+                tint = if (status == ShieldsStatus.ON) colors.accent else colors.warning,
                 modifier = Modifier.size(32.dp),
             )
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(
-                    text = stringResource(if (active) R.string.shields_on_title else R.string.shields_no_lists_title),
+                    text = stringResource(
+                        when (status) {
+                            ShieldsStatus.ON -> R.string.shields_on_title
+                            ShieldsStatus.OFF_FOR_SITE -> R.string.shields_off_title
+                            ShieldsStatus.NO_LISTS -> R.string.shields_no_lists_title
+                        },
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.textPrimary,
                 )
@@ -179,23 +215,86 @@ fun ShieldsPanel(
             }
         }
         Spacer(Modifier.height(8.dp))
-        if (active) {
-            Text(
-                text = pluralStringResource(R.plurals.shields_blocked_on_page, shields.total, shields.total),
-                style = MaterialTheme.typography.bodyLarge.tabular(),
-                color = colors.textPrimary,
-            )
-            CountRow(R.drawable.ic_trackers, R.string.shields_ads_and_trackers, shields.blocked, Modifier.focusRequester(firstRow))
-            CountRow(R.drawable.ic_code, R.string.shields_scripts_replaced, shields.scriptsReplaced)
-        } else {
-            // Read-only text still needs a focus target, so the panel can take focus.
-            Text(
-                text = stringResource(R.string.shields_no_lists_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.textPrimary,
-                modifier = Modifier.focusRequester(firstRow).focusable(),
-            )
+        SiteToggleRow(
+            on = status != ShieldsStatus.OFF_FOR_SITE,
+            onToggle = onToggle,
+            modifier = Modifier.focusRequester(toggleFocus),
+        )
+        when (status) {
+            ShieldsStatus.ON -> {
+                Text(
+                    text = pluralStringResource(R.plurals.shields_blocked_on_page, shields.total, shields.total),
+                    style = MaterialTheme.typography.bodyLarge.tabular(),
+                    color = colors.textPrimary,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                CountRow(R.drawable.ic_trackers, R.string.shields_ads_and_trackers, shields.blocked)
+                CountRow(R.drawable.ic_code, R.string.shields_scripts_replaced, shields.scriptsReplaced)
+            }
+            ShieldsStatus.OFF_FOR_SITE -> PanelNote(R.string.shields_off_message)
+            ShieldsStatus.NO_LISTS -> PanelNote(R.string.shields_no_lists_message)
         }
+    }
+}
+
+@Composable
+private fun PanelNote(@StringRes text: Int) {
+    Text(
+        text = stringResource(text),
+        style = MaterialTheme.typography.bodyLarge,
+        color = LocalTvShieldsColors.current.textSecondary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+/** "Shields on this site" with the toggle (design.md §9): the state is also said in words. OK switches it. */
+@Composable
+private fun SiteToggleRow(on: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = LocalTvShieldsColors.current
+    var focused by remember { mutableStateOf(false) }
+    val state = stringResource(if (on) R.string.shields_state_on else R.string.shields_state_off)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(interactionSource = null, indication = null, onClick = onToggle)
+            .semantics { stateDescription = state }
+            .border(3.dp, if (focused) colors.accent else Color.Transparent, RoundedCornerShape(13.dp))
+            .padding(5.dp)
+            .background(colors.surfaceRaised, RoundedCornerShape(8.dp))
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 64.dp)
+            .padding(horizontal = 12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.shields_site_toggle),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(text = state, style = MaterialTheme.typography.labelLarge, color = if (on) colors.accent else colors.textSecondary)
+        Spacer(Modifier.width(12.dp))
+        Switch(on)
+    }
+}
+
+/** Track and thumb; on = accent (design.md §9). */
+@Composable
+private fun Switch(on: Boolean) {
+    val colors = LocalTvShieldsColors.current
+    Box(
+        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,
+        modifier = Modifier
+            .size(width = 52.dp, height = 32.dp)
+            .background(if (on) colors.accent else Color.Transparent, RoundedCornerShape(50))
+            .then(if (on) Modifier else Modifier.border(2.dp, colors.textTertiary, RoundedCornerShape(50)))
+            .padding(4.dp),
+    ) {
+        Box(
+            Modifier
+                .size(24.dp)
+                .background(if (on) colors.onAccent else colors.textSecondary, CircleShape),
+        )
     }
 }
 

@@ -2,6 +2,8 @@ package io.github.merytech1.tvshields.browser
 
 import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.shields.SiteShields
+import io.github.merytech1.tvshields.shields.SiteShieldsStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -12,7 +14,17 @@ import org.junit.Test
 
 class BrowserViewModelTest {
 
-    private val vm = BrowserViewModel(SearchResolver { SearchEngine.BRAVE })
+    /** Remembers the switch in memory, like the DataStore repository does before writing. */
+    private class FakeSiteShields : SiteShieldsStore {
+        val off = mutableSetOf<String>()
+        override fun isOff(url: String) = SiteShields.isOff(off, url)
+        override fun setOff(site: String, off: Boolean) {
+            if (off) this.off += site else this.off -= site
+        }
+    }
+
+    private val siteShields = FakeSiteShields()
+    private val vm = BrowserViewModel(SearchResolver { SearchEngine.BRAVE }, siteShields)
 
     @Test
     fun `home shows the start page and loads the blank page`() = runBlocking {
@@ -74,6 +86,38 @@ class BrowserViewModelTest {
         vm.onBlocked()
         vm.onHome()
         assertEquals(0, vm.state.value.shields.total)
+    }
+
+    @Test
+    fun `turning shields off remembers the site and reloads the page`() = runBlocking {
+        vm.onPageStarted("https://www.news.example/article")
+        assertFalse(vm.state.value.shieldsOffForSite)
+
+        vm.onSiteShieldsToggled()
+        assertTrue(vm.state.value.shieldsOffForSite)
+        assertEquals(setOf("news.example"), siteShields.off)
+        vm.reloads.first()
+
+        vm.onSiteShieldsToggled()
+        assertFalse(vm.state.value.shieldsOffForSite)
+        assertEquals(emptySet<String>(), siteShields.off)
+    }
+
+    @Test
+    fun `a page on a site with shields off starts with them off`() {
+        siteShields.off += "news.example"
+        vm.onPageStarted("https://m.news.example/")
+        assertTrue(vm.state.value.shieldsOffForSite)
+        vm.onPageStarted("https://other.example/")
+        assertFalse(vm.state.value.shieldsOffForSite)
+    }
+
+    @Test
+    fun `the start page has no site to switch`() {
+        vm.onPageStarted(HOME_URL)
+        vm.onSiteShieldsToggled()
+        assertFalse(vm.state.value.shieldsOffForSite)
+        assertEquals(emptySet<String>(), siteShields.off)
     }
 
     @Test

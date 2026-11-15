@@ -57,6 +57,18 @@ class ShieldsManagerTest {
     }
 
     @Test
+    fun `a site with shields off never reaches the engine`() {
+        val engine = FakeEngine()
+        val shields = ShieldsManager(isSiteOff = { it == page }) { engine }
+
+        assertEquals(NetworkDecision.Allow, shields.check("https://ads.example/a.js", page, false, "*/*", "GET"))
+        assertEquals(NetworkDecision.Allow, shields.check(page, page, true, "text/html", "GET"))
+        assertEquals(emptyList<List<String>>(), engine.calls)
+        // Other pages are still checked.
+        assertEquals(NetworkDecision.Block, shields.check("https://ads.example/a.js", "https://other.example/", false, "*/*", "GET"))
+    }
+
+    @Test
     fun `allows everything while the engine is loading`() {
         val shields = ShieldsManager { null }
         assertEquals(NetworkDecision.Allow, shields.check("https://ads.example/a.js", page, false, "*/*", "GET"))

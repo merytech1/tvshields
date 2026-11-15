@@ -24,9 +24,9 @@ class MainActivity : ComponentActivity() {
                 val setup: FirstLaunchViewModel = viewModel(factory = FirstLaunchViewModel.factory(container.engineLoader))
                 val status by setup.status.collectAsState()
                 if (status.allowsBrowsing) {
-                    val browser: BrowserViewModel = viewModel(factory = BrowserViewModel.factory(container.searchResolver))
+                    val browser: BrowserViewModel = viewModel(factory = BrowserViewModel.factory(container.searchResolver, container.siteShields))
                     val engine by container.engineLoader.engine.collectAsState()
-                    BrowserScreen(browser, container.shields, container.cosmetics, shieldsActive = engine != null)
+                    BrowserScreen(browser, container.shields, container.cosmetics, engineReady = engine != null)
                 } else {
                     FirstLaunchScreen(status, onRetry = setup::retry, onContinue = setup::continueUnprotected)
                 }

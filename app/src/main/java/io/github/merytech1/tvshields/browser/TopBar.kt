@@ -42,7 +42,7 @@ fun TopBar(
     onBack: () -> Unit,
     onReload: () -> Unit,
     onHome: () -> Unit,
-    shieldsActive: Boolean,
+    shieldsStatus: ShieldsStatus,
     panelOpen: Boolean,
     badgeFocus: FocusRequester,
     onShields: () -> Unit,
@@ -70,7 +70,7 @@ fun TopBar(
         Spacer(Modifier.width(8.dp))
         ShieldsBadge(
             count = state.shields.total,
-            active = shieldsActive,
+            status = shieldsStatus,
             panelOpen = panelOpen,
             enabled = onPage,
             onClick = onShields,

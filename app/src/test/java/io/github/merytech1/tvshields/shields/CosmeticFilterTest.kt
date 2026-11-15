@@ -93,6 +93,19 @@ class CosmeticFilterTest {
     }
 
     @Test
+    fun `a site with shields off gets no cosmetic resources`() {
+        var off = false
+        val filter = CosmeticFilter(isSiteOff = { off }) {
+            FakeEngine("""{"hide_selectors":[".ad"],"injected_script":"noop()"}""")
+        }
+
+        assertEquals("noop()", filter.resourcesFor(page)?.scriptlets)
+        // Turned off after the answer was cached: the cache must not bring it back.
+        off = true
+        assertNull(filter.resourcesFor(page))
+    }
+
+    @Test
     fun `generichide defaults to false`() {
         val filter = CosmeticFilter { FakeEngine("""{"hide_selectors":[]}""") }
 

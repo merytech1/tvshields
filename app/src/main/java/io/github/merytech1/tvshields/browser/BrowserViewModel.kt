@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.shields.SiteShields
+import io.github.merytech1.tvshields.shields.SiteShieldsStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +20,8 @@ data class BrowserUiState(
     val progress: Int? = null,
     val canGoBack: Boolean = false,
     val shields: PageShields = PageShields(),
+    /** Shields are off for the current page's site (rules P3). */
+    val shieldsOffForSite: Boolean = false,
 )
 
 /** What Shields stopped on the current page (roadmap 6.1). Ads and trackers come from the same rules, so they share a count. */
@@ -32,7 +36,10 @@ data class PageShields(
 const val HOME_URL = "about:blank"
 
 /** Browser screen state. Holds no WebView: the screen applies [loads] and reports page events back. */
-class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel() {
+class BrowserViewModel(
+    private val searchResolver: SearchResolver,
+    private val siteShields: SiteShieldsStore,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(BrowserUiState())
     val state: StateFlow<BrowserUiState> = _state.asStateFlow()
@@ -40,6 +47,10 @@ class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel()
     private val _loads = Channel<String>(Channel.BUFFERED)
     /** URLs the WebView must load, one event each. */
     val loads: Flow<String> = _loads.receiveAsFlow()
+
+    private val _reloads = Channel<Unit>(Channel.CONFLATED)
+    /** The current page must load again, because what Shields do on it changed. */
+    val reloads: Flow<Unit> = _reloads.receiveAsFlow()
 
     /** URL of the last main-frame request; a page that starts without one came from the back-forward cache. */
     @Volatile
@@ -61,8 +72,8 @@ class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel()
     fun onPageStarted(url: String) = _state.update {
         // No request means nothing was checked for this document: the old counts do not apply.
         val shields = if (url == requestedUrl) it.shields else PageShields()
-        if (url == HOME_URL) it.copy(currentUrl = "", progress = null, shields = shields)
-        else it.copy(currentUrl = url, progress = 0, shields = shields)
+        if (url == HOME_URL) it.copy(currentUrl = "", progress = null, shields = shields, shieldsOffForSite = false)
+        else it.copy(currentUrl = url, progress = 0, shields = shields, shieldsOffForSite = siteShields.isOff(url))
     }
 
     /** A new document is requested (WebView background thread): its counts start at zero. */
@@ -84,11 +95,21 @@ class BrowserViewModel(private val searchResolver: SearchResolver) : ViewModel()
         it.copy(currentUrl = if (url == HOME_URL) "" else url, progress = null)
     }
 
+    /** Turns Shields off (or back on) for the current page's site, remembers it and reloads the page. */
+    fun onSiteShieldsToggled() {
+        val current = _state.value
+        val site = SiteShields.siteOf(current.currentUrl) ?: return
+        val off = !current.shieldsOffForSite
+        siteShields.setOff(site, off)
+        _state.update { it.copy(shieldsOffForSite = off) }
+        _reloads.trySend(Unit)
+    }
+
     fun onHistoryChanged(canGoBack: Boolean) = _state.update { it.copy(canGoBack = canGoBack) }
 
     companion object {
-        fun factory(searchResolver: SearchResolver) = viewModelFactory {
-            initializer { BrowserViewModel(searchResolver) }
+        fun factory(searchResolver: SearchResolver, siteShields: SiteShieldsStore) = viewModelFactory {
+            initializer { BrowserViewModel(searchResolver, siteShields) }
         }
     }
 }

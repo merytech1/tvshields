@@ -8,9 +8,12 @@ import io.github.merytech1.tvshields.engine.NetworkDecision
  * background threads, for every request, so it stays small and never throws.
  *
  * [engine] returns the current engine, or null while it is loading: requests are then allowed.
+ * [isSiteOff] is the per-site switch (rules C5): it is checked first, so the engine never sees
+ * the requests of a page on a site with Shields off.
  */
 class ShieldsManager(
     val perf: ShieldsPerf = ShieldsPerf.Disabled,
+    private val isSiteOff: (pageUrl: String) -> Boolean = { false },
     private val engine: () -> AdblockEngine?,
 ) {
 
@@ -20,6 +23,7 @@ class ShieldsManager(
      */
     fun check(url: String, sourceUrl: String, isForMainFrame: Boolean, accept: String?, method: String): NetworkDecision {
         if (!url.startsWith("http://") && !url.startsWith("https://")) return NetworkDecision.Allow
+        if (isSiteOff(sourceUrl)) return NetworkDecision.Allow
         val current = engine() ?: return NetworkDecision.Allow
         return perf.measure(ShieldsPerf.Op.REQUEST) {
             val type = RequestTypeGuesser.guess(url, isForMainFrame, accept)

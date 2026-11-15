@@ -56,7 +56,7 @@ fun BrowserScreen(
     viewModel: BrowserViewModel,
     shields: ShieldsManager,
     cosmetics: CosmeticFilter,
-    shieldsActive: Boolean,
+    engineReady: Boolean,
 ) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
@@ -70,6 +70,7 @@ fun BrowserScreen(
     var webViewFocused by remember { mutableStateOf(false) }
     val badgeFocus = remember { FocusRequester() }
     var panelOpen by remember { mutableStateOf(false) }
+    val shieldsStatus = ShieldsStatus.of(state.shieldsOffForSite, engineReady)
 
     val injector = remember(context) { CosmeticInjector(context, cosmetics) }
     val webView = remember {
@@ -136,6 +137,14 @@ fun BrowserScreen(
             if (url == HOME_URL) addressFocus.requestFocus() else webView.requestFocus()
         }
     }
+    // Shields were turned off or on for this site: register the page's scripts again and reload.
+    LaunchedEffect(webView) {
+        viewModel.reloads.collect {
+            injector.invalidate()
+            webView.url?.let { injector.prepare(webView, it) }
+            webView.reload()
+        }
+    }
     // Moves the cursor once per frame while an arrow is held; each new press restarts the loop.
     LaunchedEffect(moveRequests) {
         var last = withFrameNanos { it }
@@ -160,7 +169,7 @@ fun BrowserScreen(
                 webView.reload()
             },
             onHome = viewModel::onHome,
-            shieldsActive = shieldsActive,
+            shieldsStatus = shieldsStatus,
             panelOpen = panelOpen,
             badgeFocus = badgeFocus,
             onShields = { panelOpen = !panelOpen },
@@ -203,7 +212,8 @@ fun BrowserScreen(
                 ShieldsPanel(
                     site = displaySite(state.currentUrl),
                     shields = state.shields,
-                    active = shieldsActive,
+                    status = shieldsStatus,
+                    onToggle = viewModel::onSiteShieldsToggled,
                     onClose = {
                         panelOpen = false
                         badgeFocus.requestFocus()

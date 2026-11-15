@@ -3,12 +3,15 @@ package io.github.merytech1.tvshields
 import android.content.Context
 import android.os.Looper
 import android.util.Log
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
 import io.github.merytech1.tvshields.engine.EngineLoader
 import io.github.merytech1.tvshields.engine.EngineRepository
 import io.github.merytech1.tvshields.engine.NativeAdblockEngine
 import io.github.merytech1.tvshields.lists.FilterListRepository
 import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.settings.SiteShieldsRepository
 import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import io.github.merytech1.tvshields.shields.ShieldsPerf
@@ -50,9 +53,14 @@ class AppContainer(val context: Context) {
         log = { Log.d(PERF_TAG, it) },
     )
 
-    val shields = ShieldsManager(perf) { engineLoader.engine.value }
+    /** General settings and the sites with Shields off (architecture §8). One instance per file. */
+    private val settingsStore = PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 
-    val cosmetics = CosmeticFilter(perf) { engineLoader.engine.value }
+    val siteShields = SiteShieldsRepository(settingsStore, appScope)
+
+    val shields = ShieldsManager(perf, siteShields::isOff) { engineLoader.engine.value }
+
+    val cosmetics = CosmeticFilter(perf, siteShields::isOff) { engineLoader.engine.value }
 
     init {
         // The first engine calls of a process are the slow ones (cold code and data, ~200 ms on
