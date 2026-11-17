@@ -77,17 +77,22 @@ internal class FakeLists(
     var updates = 0
     var afterProgress: () -> Unit = {}
 
+    /** Sources that fail on the next updates; with [unreachable] every one does. */
+    var failing = emptyList<String>()
+    var unreachable = false
+
     override suspend fun update(onProgress: (done: Int, total: Int) -> Unit): UpdateResult {
         updates++
         onProgress(1, 1)
         afterProgress()
+        if (unreachable) return UpdateResult(emptyList(), emptyList(), listOf("all"))
         val new = onUpdate
         onUpdate = null
         if (new != null && new != texts) {
             texts = new
-            return UpdateResult(listOf("changed"), emptyList(), emptyList())
+            return UpdateResult(listOf("changed"), emptyList(), failing)
         }
-        return UpdateResult(emptyList(), listOf("same"), emptyList())
+        return UpdateResult(emptyList(), listOf("same"), failing)
     }
 
     override suspend fun storedLists() = texts.map { StoredList(it, trusted = it.startsWith("trusted")) }

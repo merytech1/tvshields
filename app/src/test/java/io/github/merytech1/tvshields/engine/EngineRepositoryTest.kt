@@ -3,6 +3,7 @@ package io.github.merytech1.tvshields.engine
 import io.github.merytech1.tvshields.lists.FilterListStore
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -146,6 +147,33 @@ class EngineRepositoryTest {
         // The next launch loads the new engine from the cache.
         assertEquals(LoadedEngine.Source.CACHE, repository(lists).load()!!.source)
         assertEquals(2, factory.built)
+    }
+
+    @Test
+    fun `refresh after a load with nothing new builds nothing`() = runBlocking {
+        val repository = repository(FakeLists(listOf("ads")))
+        repository.load()
+
+        assertNull(repository.refresh().engine)
+        assertEquals(1, factory.built)
+    }
+
+    @Test
+    fun `refresh rebuilds when a list was turned on or off without downloading`() = runBlocking {
+        val lists = FakeLists(listOf("ads"))
+        val repository = repository(lists)
+        repository.load()
+
+        // Turned on in Settings, already on disk: the update finds nothing new.
+        lists.texts = listOf("ads", "tracker")
+        val on = repository.refresh().engine
+        assertNotNull(on)
+        assertEquals(NetworkDecision.Block, on!!.engine.checkRequest("https://tracker.example/", "", "script"))
+
+        lists.texts = listOf("ads")
+        val off = repository.refresh().engine
+        assertEquals(NetworkDecision.Allow, off!!.engine.checkRequest("https://tracker.example/", "", "script"))
+        assertEquals(3, factory.built)
     }
 
     @Test

@@ -33,7 +33,7 @@ import androidx.tv.material3.Icon
 import io.github.merytech1.tvshields.R
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 
-/** Top bar (design.md §5 and §9): back, reload, home, the address bar and the Shields badge. */
+/** Top bar (design.md §5 and §9): back, reload, home, the address bar, the Shields badge and settings. */
 @Composable
 fun TopBar(
     state: BrowserUiState,
@@ -46,6 +46,8 @@ fun TopBar(
     panelOpen: Boolean,
     badgeFocus: FocusRequester,
     onShields: () -> Unit,
+    settingsFocus: FocusRequester,
+    onSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalTvShieldsColors.current
@@ -76,6 +78,13 @@ fun TopBar(
             onClick = onShields,
             modifier = Modifier.focusRequester(badgeFocus),
         )
+        BarIconButton(
+            R.drawable.ic_tune,
+            R.string.settings_title,
+            enabled = true,
+            onClick = onSettings,
+            modifier = Modifier.focusRequester(settingsFocus),
+        )
     }
 }
 
@@ -86,6 +95,7 @@ private fun BarIconButton(
     @StringRes label: Int,
     enabled: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = LocalTvShieldsColors.current
     var focused by remember { mutableStateOf(false) }
@@ -93,7 +103,7 @@ private fun BarIconButton(
     val shape = RoundedCornerShape(13.dp)
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = modifier
             .scale(scale)
             .onFocusChanged { focused = it.isFocused }
             // Focus is shown by the ring below, not by the default indication.

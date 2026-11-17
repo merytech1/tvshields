@@ -47,6 +47,8 @@ import io.github.merytech1.tvshields.browser.cursor.Direction
 import io.github.merytech1.tvshields.browser.cursor.Scroll
 import io.github.merytech1.tvshields.browser.cursor.WebViewInput
 import io.github.merytech1.tvshields.R
+import io.github.merytech1.tvshields.settings.SettingsScreen
+import io.github.merytech1.tvshields.settings.SettingsViewModel
 import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
@@ -57,6 +59,7 @@ fun BrowserScreen(
     shields: ShieldsManager,
     cosmetics: CosmeticFilter,
     engineReady: Boolean,
+    settings: SettingsViewModel,
 ) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
@@ -70,6 +73,8 @@ fun BrowserScreen(
     var webViewFocused by remember { mutableStateOf(false) }
     val badgeFocus = remember { FocusRequester() }
     var panelOpen by remember { mutableStateOf(false) }
+    val settingsFocus = remember { FocusRequester() }
+    var settingsOpen by remember { mutableStateOf(false) }
     val shieldsStatus = ShieldsStatus.of(state.shieldsOffForSite, engineReady)
 
     val injector = remember(context) { CosmeticInjector(context, cosmetics) }
@@ -129,6 +134,10 @@ fun BrowserScreen(
     LaunchedEffect(Unit) {
         addressFocus.requestFocus()
     }
+    // Light or dark mode changed in Settings: blank and loading pages follow it.
+    LaunchedEffect(colors.background) {
+        webView.setBackgroundColor(colors.background.toArgb())
+    }
     LaunchedEffect(webView) {
         viewModel.loads.collect { url ->
             if (url != HOME_URL) injector.prepareInBackground(webView, url)
@@ -158,76 +167,99 @@ fun BrowserScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        TopBar(
-            state = state,
-            addressFocus = addressFocus,
-            onSubmit = viewModel::onAddressSubmit,
-            onBack = { if (webView.canGoBack()) goBack() },
-            onReload = {
-                webView.url?.let { injector.prepare(webView, it) }
-                webView.reload()
-            },
-            onHome = viewModel::onHome,
-            shieldsStatus = shieldsStatus,
-            panelOpen = panelOpen,
-            badgeFocus = badgeFocus,
-            onShields = { panelOpen = !panelOpen },
-            // Overscan safe area: 48 dp sides, 27 dp top (design.md §5). Drawn after the WebView
-            // (zIndex): on the reference TV the WebView paints its background outside its bounds.
-            modifier = Modifier
-                .zIndex(1f)
-                // Down goes from the bar back to the page. Up is swallowed: nothing is above the
-                // bar, and the text field would open the keyboard (e.g. a held Up that left the page).
-                .onPreviewKeyEvent {
-                    when (it.key) {
-                        Key.DirectionUp -> true
-                        // Back still means the previous page; with no history it leaves the app.
-                        Key.Back -> state.canGoBack.also { back ->
-                            if (back && it.type == KeyEventType.KeyUp) webView.goBack()
-                        }
-                        Key.DirectionDown -> it.type == KeyEventType.KeyDown &&
-                            state.currentUrl.isNotEmpty() && webView.requestFocus()
-                        else -> false
-                    }
-                }
-                .fillMaxWidth()
-                .background(colors.background)
-                .padding(start = 48.dp, end = 48.dp, top = 27.dp, bottom = 16.dp),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .onSizeChanged {
-                    val margin = with(density) { CursorSize.toPx() }
-                    cursor.setBounds(it.width - margin, it.height - margin)
-                    cursorPosition = Offset(cursor.x, cursor.y)
+    Box(Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
+            TopBar(
+                state = state,
+                addressFocus = addressFocus,
+                onSubmit = viewModel::onAddressSubmit,
+                onBack = { if (webView.canGoBack()) goBack() },
+                onReload = {
+                    webView.url?.let { injector.prepare(webView, it) }
+                    webView.reload()
                 },
-        ) {
-            AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
-            if (state.currentUrl.isEmpty()) StartPage()
-            // Below the top bar, at its right edge, so the badge stays visible (design.md §14).
-            if (panelOpen && state.currentUrl.isNotEmpty()) {
-                ShieldsPanel(
-                    site = displaySite(state.currentUrl),
-                    shields = state.shields,
-                    status = shieldsStatus,
-                    onToggle = viewModel::onSiteShieldsToggled,
-                    onClose = {
-                        panelOpen = false
-                        badgeFocus.requestFocus()
+                onHome = viewModel::onHome,
+                shieldsStatus = shieldsStatus,
+                panelOpen = panelOpen,
+                badgeFocus = badgeFocus,
+                onShields = { panelOpen = !panelOpen },
+                settingsFocus = settingsFocus,
+                onSettings = {
+                    panelOpen = false
+                    settingsOpen = true
+                },
+                // Overscan safe area: 48 dp sides, 27 dp top (design.md §5). Drawn after the WebView
+                // (zIndex): on the reference TV the WebView paints its background outside its bounds.
+                modifier = Modifier
+                    .zIndex(1f)
+                    // Down goes from the bar back to the page. Up is swallowed: nothing is above the
+                    // bar, and the text field would open the keyboard (e.g. a held Up that left the page).
+                    .onPreviewKeyEvent {
+                        when (it.key) {
+                            Key.DirectionUp -> true
+                            // Back still means the previous page; with no history it leaves the app.
+                            Key.Back -> state.canGoBack.also { back ->
+                                if (back && it.type == KeyEventType.KeyUp) webView.goBack()
+                            }
+                            Key.DirectionDown -> it.type == KeyEventType.KeyDown &&
+                                state.currentUrl.isNotEmpty() && webView.requestFocus()
+                            else -> false
+                        }
+                    }
+                    .fillMaxWidth()
+                    .background(colors.background)
+                    .padding(start = 48.dp, end = 48.dp, top = 27.dp, bottom = 16.dp),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .onSizeChanged {
+                        val margin = with(density) { CursorSize.toPx() }
+                        cursor.setBounds(it.width - margin, it.height - margin)
+                        cursorPosition = Offset(cursor.x, cursor.y)
                     },
-                    onFocusLost = { panelOpen = false },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = 48.dp)
-                        .fillMaxWidth(PANEL_WIDTH),
-                )
+            ) {
+                AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
+                if (state.currentUrl.isEmpty()) StartPage()
+                // Below the top bar, at its right edge, so the badge stays visible (design.md §14).
+                if (panelOpen && state.currentUrl.isNotEmpty()) {
+                    ShieldsPanel(
+                        site = displaySite(state.currentUrl),
+                        shields = state.shields,
+                        status = shieldsStatus,
+                        onToggle = viewModel::onSiteShieldsToggled,
+                        onClose = {
+                            panelOpen = false
+                            badgeFocus.requestFocus()
+                        },
+                        onFocusLost = { panelOpen = false },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 48.dp)
+                            .fillMaxWidth(PANEL_WIDTH),
+                    )
+                }
+                if (webViewFocused && state.currentUrl.isNotEmpty()) {
+                    CursorOverlay(position = cursorPosition, modifier = Modifier.fillMaxSize())
+                }
             }
-            if (webViewFocused && state.currentUrl.isNotEmpty()) {
-                CursorOverlay(position = cursorPosition, modifier = Modifier.fillMaxSize())
-            }
+        }
+        // Over the whole browser, which stays composed: the page keeps its state (design.md §14).
+        if (settingsOpen) {
+            val settingsState by settings.state.collectAsState()
+            SettingsScreen(
+                state = settingsState,
+                onUiMode = settings::onUiMode,
+                onAccent = settings::onAccent,
+                onListToggled = settings::onListToggled,
+                onUpdateLists = settings::onUpdateLists,
+                onClose = {
+                    settingsOpen = false
+                    settingsFocus.requestFocus()
+                },
+                modifier = Modifier.fillMaxSize().zIndex(2f),
+            )
         }
     }
 }

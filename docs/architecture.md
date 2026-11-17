@@ -195,7 +195,9 @@ keeps the list in DataStore (`shields_off_sites`) and an in-memory copy:
 - `ShieldsManager` and `CosmeticFilter` read the in-memory copy first, using the page URL. The
   engine never sees the requests of a page on a site that is off, and that page gets no CSS, no
   generic or procedural script and no scriptlets.
-- A change applies at once and is written in the background.
+- A change applies at once and is written in the background. Writes go out one at a time, in
+  the order the changes were made, so switching a site off and on quickly ends as "on" on disk
+  too. The file is read once at start-up; after that memory is the truth.
 - The page reloads after the change. `CosmeticInjector.invalidate()` makes the next registration
   ask again for the same URL.
 - At start-up, the first page may load before DataStore has been read (a few milliseconds).
@@ -429,6 +431,26 @@ A partial download (some sources failed) still builds an engine from what arrive
   current engine, so it uses either the old or the new one, never none. The old engine is closed
   10 s later, after any request that already picked it up has finished.
 
+**Optional lists and forced updates (roadmap 6.3).** Settings → Filter lists switches the
+optional lists (`OptionalLists`: three annoyance lists, the three embed exceptions and the 33
+regional lists of the catalog) and has an "Update lists" button. `FilterListRepository` asks a
+provider for the enabled lists each time (`DefaultLists` + the ids saved in DataStore), so the
+update, the build and the fingerprint all follow the switches:
+- Turning a list on saves it at once; 1.5 s later (several switches share one) the same
+  `EngineLoader.refresh()` runs. It downloads what is missing and rebuilds the engine.
+- `EngineRepository` remembers the fingerprint of the engine in use. A refresh also rebuilds
+  when the fingerprint changed without any download: a list turned off, or turned back on while
+  its file is still stored. Files of disabled lists stay in `filesDir/lists/`.
+- `refresh()` returns what happened (`ListRefresh`: updated, up to date, some lists failed,
+  offline, engine error) and Settings shows it. Once started, a refresh finishes even if its
+  caller is cancelled (closing Settings, WorkManager stopping the work): an engine built and
+  cached but never swapped in would stay unused until the next launch.
+
+Checked on the reference TV (2026-11-17): turning on "Spanish website ad blocker" downloaded
+EasyList Spanish and swapped in a new engine (3.3 s). A request to `adzonestatic.com`, which
+only that list blocks, was then blocked; turned off, the engine was rebuilt with no download
+and the same request passed. "Update lists" downloaded 2 changed lists out of 31.
+
 Checked on the reference TV (2026-11-09): with theverge.com open and scrolling, an update
 downloaded 2 changed lists, rebuilt the engine in 4.7 s and swapped it with no error; the next
 launch loaded the new engine from the cache (603 ms). WorkManager does not run periodic work
@@ -443,7 +465,7 @@ folder goes: `adb shell pm clear <app>`, then `run-as <app> mkdir files` and
 **Default lists** (those Brave enables by default, taken from its `list_catalog.json`):
 Brave Default Adblock Filters (uBO + EasyList + Brave lists incl. SugarCoat), Brave Default
 Privacy Filters (EasyPrivacy + uBO privacy), Brave First Party Filters, Cookie notice blocker,
-Mobile app promo blocker. Regional and "annoyances" lists are optional in Settings. Details in
+Mobile app promo blocker. Regional, "annoyances" and embed lists are optional in Settings (above). Details in
 [resources/filter-lists.md](resources/filter-lists.md).
 
 ### 5.5 Cost on the reference TV (T7)
@@ -555,7 +577,7 @@ No live suggestions (rules C10).
 
 | Data | Where |
 |---|---|
-| General settings, chosen search provider, sites with Shields off | Jetpack DataStore |
+| General settings, chosen search provider, sites with Shields off | Jetpack DataStore, one `settings` file: `ui_mode`, `accent`, `enabled_lists` (`SettingsRepository`) and `shields_off_sites` (`SiteShieldsRepository`). Each repository reads it once at start-up and then writes its changes in order |
 | Downloaded lists, `resources.json` | `filesDir/lists/` |
 | Serialized engine | `filesDir/engine.dat` (includes the crate version; regenerated if it changes) |
 | Block counters | In memory per tab (`PageShields` in the browser state). `ShieldsWebViewClient` resets them on each main-frame request and counts every block and redirect; a page restored from the back-forward cache, with no request, starts at zero. The cumulative total goes to DataStore (not stored yet). |

@@ -27,5 +27,27 @@
         <item quantity="other">%d blocked on this page</item>
     </plurals>
     <string name="shields_ads_and_trackers">Ads and trackers</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_mode">Mode</string>
+    <string name="settings_mode_dark">Dark</string>
+    <string name="settings_mode_light">Light</string>
+    <string name="settings_accent">Accent</string>
+    <string name="settings_accent_purple">Purple</string>
+    <string name="settings_accent_emerald">Emerald</string>
+    <string name="settings_appearance_note">Changes apply right away.</string>
+    <string name="settings_filter_lists">Filter lists</string>
+    <string name="settings_lists_intro">Shields always use the default lists. Turn on more to hide annoyances, allow embedded posts or block ads on sites in other languages.</string>
+    <string name="settings_lists_annoyances">Annoyances</string>
+    <string name="settings_lists_embeds">Embedded posts</string>
+    <string name="settings_lists_regional">Regional lists</string>
+    <string name="action_update_lists">Update lists</string>
+    <string name="lists_status_idle">Lists update on their own once a day.</string>
+    <string name="lists_status_updating">Updating lists…</string>
+    <string name="lists_status_updated">Lists updated.</string>
+    <string name="lists_status_up_to_date">Lists are up to date.</string>
+    <string name="lists_status_partly_failed">Some lists could not be updated. They keep their last copy.</string>
+    <string name="lists_status_offline">No connection. Lists update when the TV is back online.</string>
+    <string name="lists_status_failed">The lists could not be applied. Shields keep the current ones.</string>
     <string name="shields_scripts_replaced">Scripts replaced</string>
 </resources>

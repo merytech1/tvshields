@@ -53,15 +53,19 @@ interface FilterListStore {
  * (the resources as `resources.json` and `resources.meta`). Updates send those back, so an
  * unchanged file costs one 304 response; a 200 with the same content also counts as unchanged.
  * A failed source keeps its previous copy. Files are replaced atomically (temp file, then rename).
+ *
+ * [lists] gives the enabled lists each time they are needed, so turning one on or off in Settings
+ * changes what is downloaded, built and fingerprinted. A disabled list keeps its files: turning it
+ * back on needs no download.
  */
 class FilterListRepository(
     private val dir: File,
-    private val lists: List<FilterList> = DefaultLists.all,
+    private val lists: suspend () -> List<FilterList> = { DefaultLists.all },
     private val resourcesUrl: String? = DefaultLists.RESOURCES_URL,
 ) : FilterListStore {
     private val mutex = Mutex()
 
-    private val sources get() = lists.flatMap { it.sources }.distinctBy { it.url }
+    private fun sourcesOf(lists: List<FilterList>) = lists.flatMap { it.sources }.distinctBy { it.url }
 
     /** Checks every source once. Never throws for network errors: they end up in [UpdateResult.failed]. */
     override suspend fun update(onProgress: (done: Int, total: Int) -> Unit): UpdateResult = mutex.withLock {
@@ -71,32 +75,35 @@ class FilterListRepository(
             val unchanged = mutableListOf<String>()
             val failed = mutableListOf<String>()
             val seen = mutableSetOf<String>()
+            val current = lists()
             fun record(url: String, fetch: Fetch) = when (fetch) {
                 Fetch.DOWNLOADED -> downloaded += url
                 Fetch.UNCHANGED -> unchanged += url
                 Fetch.FAILED -> failed += url
             }
-            lists.forEachIndexed { index, list ->
+            current.forEachIndexed { index, list ->
                 for (source in list.sources) {
                     if (!seen.add(source.url)) continue
                     record(source.url, fetch(source.url, listFile(source.url), metaFile(source.url)))
                 }
-                onProgress(index + 1, lists.size)
+                onProgress(index + 1, current.size)
             }
             if (resourcesUrl != null) record(resourcesUrl, fetch(resourcesUrl, resourcesFile, resourcesMeta))
             UpdateResult(downloaded, unchanged, failed)
         }
     }
 
-    override fun hasStoredLists(): Boolean = sources.any { listFile(it.url).isFile }
+    /** Any stored list counts: the default lists are always enabled and are downloaded first. */
+    override fun hasStoredLists(): Boolean = dir.listFiles()?.any { it.name.endsWith(".txt") } == true
 
     /**
      * Every stored list, in catalog order; sources never downloaded are skipped. A source shared
      * by several entries is trusted if any of them is.
      */
     override suspend fun storedLists(): List<StoredList> = withContext(Dispatchers.IO) {
-        val trusted = lists.filter { it.trusted }.flatMap { it.sources }.map { it.url }.toSet()
-        sources.map { it.url to listFile(it.url) }
+        val current = lists()
+        val trusted = current.filter { it.trusted }.flatMap { it.sources }.map { it.url }.toSet()
+        sourcesOf(current).map { it.url to listFile(it.url) }
             .filter { (_, file) -> file.isFile }
             .map { (url, file) -> StoredList(file.readText(), trusted = url in trusted) }
     }
@@ -107,11 +114,12 @@ class FilterListRepository(
 
     /**
      * Identifies the stored lists without reading them: changes whenever a list is downloaded
-     * again (new `ETag` / `Last-Modified` or size). Lets a cached engine tell if it is stale.
+     * again (new `ETag` / `Last-Modified` or size) and whenever a list is turned on or off. Lets a
+     * cached engine tell if it is stale.
      */
     override suspend fun fingerprint(): ByteArray = withContext(Dispatchers.IO) {
         val digest = MessageDigest.getInstance("SHA-256")
-        for (source in sources) {
+        for (source in sourcesOf(lists())) {
             val list = listFile(source.url)
             if (!list.isFile) continue
             digest.update(source.url.toByteArray())

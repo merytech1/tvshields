@@ -62,9 +62,9 @@ class FilterListRepositoryTest {
 
     private fun repository(resources: Boolean = false) = FilterListRepository(
         dir = tmp.root.resolve("lists"),
-        lists = listOf(
+        lists = { listOf(
             FilterList("a", "List A", listOf(ListSource(url("/a.txt"), "A"), ListSource(url("/b.txt"), "B"))),
-        ),
+        ) },
         resourcesUrl = if (resources) url("/resources.json") else null,
     )
 
@@ -151,10 +151,10 @@ class FilterListRepositoryTest {
         served["/b.txt"] = Served("##.banner", "\"b1\"", null)
         val repository = FilterListRepository(
             dir = tmp.root.resolve("lists"),
-            lists = listOf(
+            lists = { listOf(
                 FilterList("a", "List A", listOf(ListSource(url("/a.txt"), "A"))),
                 FilterList("b", "List B", listOf(ListSource(url("/b.txt"), "B"), ListSource(url("/a.txt"), "A again"))),
-            ),
+            ) },
             resourcesUrl = null,
         )
         val progress = mutableListOf<Pair<Int, Int>>()
@@ -213,15 +213,42 @@ class FilterListRepositoryTest {
         served["/b.txt"] = Served("##.banner", "\"b1\"", null)
         val repository = FilterListRepository(
             dir = tmp.root.resolve("lists"),
-            lists = listOf(
+            lists = { listOf(
                 FilterList("a", "List A", listOf(ListSource(url("/a.txt"), "A")), trusted = true),
                 FilterList("b", "List B", listOf(ListSource(url("/b.txt"), "B"))),
-            ),
+            ) },
             resourcesUrl = null,
         )
         repository.update()
 
         assertEquals(listOf(true, false), repository.storedLists().map { it.trusted })
+    }
+
+    @Test
+    fun `turning a list on or off changes what is stored and the fingerprint`() = runBlocking {
+        served["/a.txt"] = Served("||ads.example^", "\"a1\"", null)
+        served["/b.txt"] = Served("##.banner", "\"b1\"", null)
+        val listA = FilterList("a", "List A", listOf(ListSource(url("/a.txt"), "A")))
+        val listB = FilterList("b", "List B", listOf(ListSource(url("/b.txt"), "B")))
+        var enabled = listOf(listA)
+        val repository = FilterListRepository(tmp.root.resolve("lists"), lists = { enabled }, resourcesUrl = null)
+        repository.update()
+        val onlyA = repository.fingerprint()
+
+        enabled = listOf(listA, listB)
+        val result = repository.update()
+        assertEquals(listOf(url("/b.txt")), result.downloaded)
+        assertEquals(2, repository.storedLists().size)
+        val both = repository.fingerprint()
+        assertFalse(onlyA.contentEquals(both))
+
+        // Off again: the file stays, so turning it back on needs no download.
+        enabled = listOf(listA)
+        assertEquals(1, repository.storedLists().size)
+        assertTrue(onlyA.contentEquals(repository.fingerprint()))
+        enabled = listOf(listA, listB)
+        assertFalse(repository.update().changed)
+        assertTrue(both.contentEquals(repository.fingerprint()))
     }
 
     @Test
