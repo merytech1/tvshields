@@ -278,9 +278,9 @@ private fun SiteToggleRow(on: Boolean, onToggle: () -> Unit, modifier: Modifier 
     }
 }
 
-/** Track and thumb; on = accent (design.md §9). */
+/** Track and thumb; on = accent (design.md §9). Also used by Settings. */
 @Composable
-private fun Switch(on: Boolean) {
+internal fun Switch(on: Boolean) {
     val colors = LocalTvShieldsColors.current
     Box(
         contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,

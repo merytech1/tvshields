@@ -40,7 +40,11 @@ a list is never left half written. Responses over 16 MB are rejected.
 ## Optional (in Settings)
 
 "Annoying distractions blocker", "Newsletter popup blocker", "AI suggestions blocker", the embed
-exceptions (Facebook, X, LinkedIn) and the **regional lists**.
+exceptions (Facebook, X, LinkedIn) and the **regional lists** (the 33 catalog entries with
+`langs`). They are pinned in `lists/OptionalLists.kt` from the same catalog date, with the same
+`trusted` rule (`permission_mask: 1`). All are off on a fresh install. Turning one on downloads
+it and rebuilds the engine; turning it off rebuilds without it and keeps its file, so turning it
+back on needs no download. The list names come from the catalog and are not translated.
 
 For Spanish, the catalog offers two lists (`langs: ["es"]`):
 

@@ -1,9 +1,12 @@
 package io.github.merytech1.tvshields.engine
 
 import io.github.merytech1.tvshields.shields.ShieldsManager
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -162,9 +165,9 @@ class EngineLoaderTest {
         val old = loader.engine.value as FakeEngine
 
         lists.onUpdate = listOf("ads", "tracker")
-        val swapped = runBlocking { loader.refresh() }
+        val result = runBlocking { loader.refresh() }
 
-        assertTrue(swapped)
+        assertEquals(ListRefresh.UPDATED, result)
         assertEquals(NetworkDecision.Block, loader.engine.value!!.checkRequest("https://tracker.example/", "", "script"))
         assertFalse("old engine stays usable for a while", old.closed)
         awaitIdle()
@@ -178,8 +181,38 @@ class EngineLoaderTest {
         awaitIdle()
         val before = loader.engine.value
 
-        assertFalse(runBlocking { loader.refresh() })
+        assertEquals(ListRefresh.UP_TO_DATE, runBlocking { loader.refresh() })
         assertSame(before, loader.engine.value)
+    }
+
+    @Test
+    fun `refresh says when lists could not be reached`() {
+        val lists = FakeLists(listOf("ads"))
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+
+        lists.failing = listOf("regional")
+        assertEquals(ListRefresh.PARTLY_FAILED, runBlocking { loader.refresh() })
+        lists.unreachable = true
+        assertEquals(ListRefresh.OFFLINE, runBlocking { loader.refresh() })
+    }
+
+    @Test
+    fun `a cancelled refresh still swaps in the engine it built`() {
+        val lists = FakeLists(listOf("ads"))
+        val loader = loader(lists)
+        loader.start()
+        awaitIdle()
+
+        lists.onUpdate = listOf("ads", "tracker")
+        // Cancelled while the update runs, e.g. Settings closed or WorkManager stopped the work.
+        val caller = CompletableDeferred<Job>()
+        lists.afterProgress = { runBlocking { caller.await() }.cancel() }
+        caller.complete(scope.launch { loader.refresh() })
+        awaitIdle()
+
+        assertEquals(NetworkDecision.Block, loader.engine.value!!.checkRequest("https://tracker.example/", "", "script"))
     }
 
     @Test

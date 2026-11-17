@@ -1,12 +1,14 @@
 package io.github.merytech1.tvshields.engine
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Where Shields stand while the app starts (rules C1). */
 sealed interface EngineStatus {
@@ -23,6 +25,24 @@ sealed interface EngineStatus {
 
     /** The user chose to browse without lists, or the engine could not be built. */
     data object Unprotected : EngineStatus
+}
+
+/** What [EngineLoader.refresh] did, as Settings reports it. */
+enum class ListRefresh {
+    /** A new engine is in use (some lists may still have failed: they keep their old copy). */
+    UPDATED,
+
+    /** Nothing new, and every list answered. */
+    UP_TO_DATE,
+
+    /** Nothing new, but some lists could not be checked. */
+    PARTLY_FAILED,
+
+    /** No list could be reached: most likely no connection. */
+    OFFLINE,
+
+    /** The engine could not be built. */
+    FAILED,
 }
 
 /** Pages may load in these states; the others show the first-launch screen. */
@@ -82,18 +102,27 @@ class EngineLoader(
      * Updates the lists and, if they changed, swaps in a new engine (roadmap 3.6). Requests keep
      * using the old engine until the swap, then the new one: browsing never waits and never sees
      * no engine. Lists that arrive after "Continue without protection" turn Shields on.
-     * Returns true if a new engine was swapped in. Never throws for engine errors.
+     * Also applies lists turned on or off in Settings. Never throws for engine errors.
      */
-    suspend fun refresh(): Boolean {
+    suspend fun refresh(): ListRefresh =
+        // Once started it finishes, even if the caller is cancelled: an engine built and cached
+        // but never swapped in would leave the old one in use until the next launch.
+        withContext(NonCancellable) { refreshNow() }
+
+    private suspend fun refreshNow(): ListRefresh {
         val result = try {
             repository.refresh(rebuild = _engine.value == null)
         } catch (e: RuntimeException) {
             log("List update failed: $e")
-            return false
+            return ListRefresh.FAILED
         }
         val update = result.update
         log("Lists: ${update.downloaded.size} downloaded, ${update.unchanged.size} unchanged, ${update.failed.size} failed")
-        val loaded = result.engine ?: return false
+        val loaded = result.engine ?: return when {
+            update.failed.isEmpty() -> ListRefresh.UP_TO_DATE
+            update.unchanged.isEmpty() && update.downloaded.isEmpty() -> ListRefresh.OFFLINE
+            else -> ListRefresh.PARTLY_FAILED
+        }
         val old = _engine.getAndUpdate { loaded.engine }
         log("Engine rebuilt in ${loaded.millis} ms, ${loaded.resources} resources, and swapped")
         // While the first-launch screen is up, its own load finishes the job.
@@ -106,7 +135,7 @@ class EngineLoader(
                 old.close()
             }
         }
-        return true
+        return ListRefresh.UPDATED
     }
 
     fun retry() {

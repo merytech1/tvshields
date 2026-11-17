@@ -9,8 +9,10 @@ import io.github.merytech1.tvshields.engine.EngineLoader
 import io.github.merytech1.tvshields.engine.EngineRepository
 import io.github.merytech1.tvshields.engine.NativeAdblockEngine
 import io.github.merytech1.tvshields.lists.FilterListRepository
+import io.github.merytech1.tvshields.lists.OptionalLists
 import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.search.SearchResolver
+import io.github.merytech1.tvshields.settings.SettingsRepository
 import io.github.merytech1.tvshields.settings.SiteShieldsRepository
 import io.github.merytech1.tvshields.shields.CosmeticFilter
 import io.github.merytech1.tvshields.shields.ShieldsManager
@@ -32,10 +34,19 @@ class AppContainer(val context: Context) {
     /** Work that outlives any screen, such as loading the engine. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // Brave Search until the search engine setting exists (roadmap 6.3).
+    // Brave Search until the search engine setting exists (roadmap 7.2).
     val searchResolver = SearchResolver { SearchEngine.BRAVE }
 
-    val filterLists = FilterListRepository(File(context.filesDir, "lists"))
+    /** General settings and the sites with Shields off (architecture §8). One instance per file. */
+    private val settingsStore = PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
+
+    val settings = SettingsRepository(settingsStore, appScope)
+
+    // The default lists plus those turned on in Settings (roadmap 6.3).
+    val filterLists = FilterListRepository(
+        File(context.filesDir, "lists"),
+        lists = { OptionalLists.withEnabled(settings.current().enabledLists) },
+    )
 
     val engines = EngineRepository(File(context.filesDir, "engine.dat"), filterLists, NativeAdblockEngine)
 
@@ -52,9 +63,6 @@ class AppContainer(val context: Context) {
         isUiThread = { Looper.myLooper() == Looper.getMainLooper() },
         log = { Log.d(PERF_TAG, it) },
     )
-
-    /** General settings and the sites with Shields off (architecture §8). One instance per file. */
-    private val settingsStore = PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 
     val siteShields = SiteShieldsRepository(settingsStore, appScope)
 

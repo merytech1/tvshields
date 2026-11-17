@@ -36,6 +36,9 @@ class EngineRepository(
 ) {
     private val mutex = Mutex()
 
+    /** Fingerprint of the lists the last engine was loaded or built from. */
+    private var builtFrom: ByteArray? = null
+
     /**
      * Loads the engine from the cache, or builds it from the stored lists. With no lists stored,
      * downloads them first, reporting [onProgress]. Returns null if there are still no lists
@@ -44,7 +47,10 @@ class EngineRepository(
     suspend fun load(onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): LoadedEngine? = mutex.withLock {
         withContext(Dispatchers.IO) {
             val start = System.nanoTime()
-            readCache(lists.fingerprint())?.let {
+            // Taken before the lists are read: if they change meanwhile, the next refresh notices.
+            var fingerprint = lists.fingerprint()
+            readCache(fingerprint)?.let {
+                builtFrom = fingerprint
                 val resources = useResources(it)
                 return@withContext LoadedEngine(it, LoadedEngine.Source.CACHE, since(start), resources)
             }
@@ -52,31 +58,37 @@ class EngineRepository(
             var texts = lists.storedLists()
             if (texts.isEmpty()) {
                 lists.update(onProgress)
+                fingerprint = lists.fingerprint()
                 texts = lists.storedLists()
             }
             if (texts.isEmpty()) return@withContext null
 
             val engine = factory.fromLists(texts)
-            writeCache(engine, lists.fingerprint())
+            writeCache(engine, fingerprint)
+            builtFrom = fingerprint
             val resources = useResources(engine)
             LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start), resources)
         }
     }
 
     /**
-     * Checks the lists for updates (roadmap 3.6). If any changed, or [rebuild] is set (no engine
-     * yet), builds a new engine and rewrites the cache. [RefreshResult.engine] is null when there
-     * is nothing new or still no lists.
+     * Checks the lists for updates (roadmap 3.6). If any changed, a list was turned on or off
+     * (roadmap 6.3), or [rebuild] is set (no engine yet), builds a new engine and rewrites the
+     * cache. [RefreshResult.engine] is null when there is nothing new or still no lists.
      */
     suspend fun refresh(rebuild: Boolean = false): RefreshResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             val update = lists.update()
-            if (!update.changed && !rebuild) return@withContext RefreshResult(update, null)
+            val fingerprint = lists.fingerprint()
+            val built = builtFrom
+            val stale = update.changed || (built != null && !fingerprint.contentEquals(built))
+            if (!stale && !rebuild) return@withContext RefreshResult(update, null)
             val start = System.nanoTime()
             val texts = lists.storedLists()
             if (texts.isEmpty()) return@withContext RefreshResult(update, null)
             val engine = factory.fromLists(texts)
-            writeCache(engine, lists.fingerprint())
+            writeCache(engine, fingerprint)
+            builtFrom = fingerprint
             val resources = useResources(engine)
             RefreshResult(update, LoadedEngine(engine, LoadedEngine.Source.BUILT, since(start), resources))
         }
