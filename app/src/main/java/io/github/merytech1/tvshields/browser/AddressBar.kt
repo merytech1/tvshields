@@ -100,7 +100,9 @@ fun AddressBar(
                 // On TV, focus alone must not cover the page; OK opens the keyboard.
                 showKeyboardOnFocus = false,
             ),
-            keyboardActions = KeyboardActions(onGo = {
+            // Keyboards send different actions: Gboard sends Go, the phone keyboard of the Google TV
+            // app sends Search. Any of them submits.
+            keyboardActions = KeyboardActions(onAny = {
                 if (onSubmit(value.text)) {
                     keyboard?.hide()
                     editing = false
