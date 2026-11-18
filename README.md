@@ -43,6 +43,7 @@ Details in [architecture](docs/architecture.md).
 | [docs/architecture.md](docs/architecture.md) | Evaluated approaches, architecture, modules, flows and design |
 | [docs/roadmap.md](docs/roadmap.md) | Phases and tasks, each with a definition of done |
 | [docs/design.md](docs/design.md) | Design system: philosophy, themes, color, typography, focus and components |
+| [docs/testing.md](docs/testing.md) | Test sites and how Shields are checked on the reference TV |
 | [docs/resources/](docs/resources/README.md) | Specific documentation for each external resource we use |
 
 ## Disclaimer
