@@ -56,6 +56,45 @@ For Spanish, the catalog offers two lists (`langs: ["es"]`):
 Proposal: enable by default the regional lists that match the TV's language, as Brave does with the
 browser language.
 
+## Credits
+
+Brave's catalog names each source but not its author or license. `lists/ListCredits.kt` matches
+each source URL to them; the About screen shows them (rules L2). Taken from each list's header
+and its repository on 2026-11-18. SPDX names, except where noted.
+
+| Sources | Author | License |
+|---|---|---|
+| `uBlockOrigin/uAssets` | uBlock Origin | GPL-3.0 |
+| `brave/adblock-lists` | Brave Software | MPL-2.0 |
+| EasyList, EasyPrivacy, EasyList Germany, Italy, Spanish, IndianList, EasyList Hebrew, RU AdList JS fixes | The EasyList authors | GPL-3.0 or CC-BY-SA-3.0 |
+| Fanboy lists (`secure.fanboy.co.nz`, `fanboy_ai_suggestions.txt`) | Fanboy (EasyList) | CC-BY-3.0 |
+| RU AdList (`advblock.txt`) | RU AdList | CC-BY-3.0 |
+| Liste AR | Liste AR | CC-BY-SA-3.0 |
+| URLhaus Malicious URL Blocklist | malware-filter, from URLhaus (abuse.ch) | CC0-1.0 and MIT |
+| AdGuard regional filters (`filters.adtidy.org`) | AdGuard | GPL-3.0 |
+| Bulgarian | Alex Stanev | not stated |
+| Czech and Slovak | tomasko126 and contributors | CC-BY-SA-4.0 |
+| Estonian | sander85 | CC0-1.0 |
+| Finnish | Finnish EasyList addition | Unlicense |
+| Greek | kargig | CC-BY-SA-4.0 |
+| Hungarian | Hufilter contributors | CC-BY-4.0 |
+| Indonesian (ABPindo) | ABPindo | GPL-3.0 or CC-BY-SA-3.0 |
+| Korean | FilteringDev | GPL-3.0 |
+| Latvian | Latvian List | CC-BY-SA-4.0 |
+| Lithuanian | EasyList Lithuania | GPL-3.0 |
+| Macedonian | DeepSpaceHarbor | MIT |
+| Nordic | Dandelion Sprout | Dandelicence 1.4 (own license) |
+| Persian | MasterKia | AGPL-3.0 |
+| Polish | Certyficate IT | CC-BY-NC-SA-4.0 |
+| Romanian | tcptomato | MIT |
+| Slovenian | betterwebleon | Unlicense |
+| Swedish | Frellwit (lassekongo83) | GPL-3.0 |
+| Thai | EasyList Thailand | Apache-2.0 |
+| Vietnamese | ABPVN | GPL-3.0 |
+
+Lists are downloaded on the user's device and never redistributed (rules L4); they are credited
+anyway (L2).
+
 ## Syntax (quick reference)
 
 | Rule | Meaning |

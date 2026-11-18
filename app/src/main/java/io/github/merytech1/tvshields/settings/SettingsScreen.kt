@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -69,6 +71,7 @@ import io.github.merytech1.tvshields.ui.theme.tvShieldsColors
 private enum class Section(@StringRes val title: Int) {
     APPEARANCE(R.string.settings_appearance),
     FILTER_LISTS(R.string.settings_filter_lists),
+    ABOUT(R.string.settings_about),
 }
 
 /** The optional lists as Settings groups them (docs/resources/filter-lists.md). */
@@ -97,12 +100,30 @@ fun SettingsScreen(
     var section by rememberSaveable { mutableStateOf(Section.APPEARANCE) }
     val sectionFocus = remember { Section.entries.associateWith { FocusRequester() } }
     LaunchedEffect(Unit) { sectionFocus.getValue(section).requestFocus() }
+    // The license texts replace the sections; Back returns to the row that opened them.
+    var licensesOpen by rememberSaveable { mutableStateOf(false) }
+    var backToLicensesRow by remember { mutableStateOf(false) }
+    val aboutList = rememberLazyListState()
+    val licensesRow = remember { FocusRequester() }
+    LaunchedEffect(licensesOpen) {
+        if (licensesOpen || !backToLicensesRow) return@LaunchedEffect
+        backToLicensesRow = false
+        withFrameNanos { } // the row is in a lazy list: wait until it is laid out again
+        licensesRow.requestFocus()
+    }
 
     Column(
         modifier = modifier
             .onPreviewKeyEvent {
                 if (it.key != Key.Back) return@onPreviewKeyEvent false
-                if (it.type == KeyEventType.KeyUp) onClose()
+                if (it.type == KeyEventType.KeyUp) {
+                    if (licensesOpen) {
+                        backToLicensesRow = true
+                        licensesOpen = false
+                    } else {
+                        onClose()
+                    }
+                }
                 true
             }
             // The browser is still behind: arrows must not reach it. Programmatic moves (back to
@@ -117,11 +138,15 @@ fun SettingsScreen(
             .padding(horizontal = 48.dp, vertical = 27.dp),
     ) {
         Text(
-            text = stringResource(R.string.settings_title),
+            text = stringResource(if (licensesOpen) R.string.about_licenses else R.string.settings_title),
             style = MaterialTheme.typography.headlineMedium,
             color = colors.textPrimary,
             modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
         )
+        if (licensesOpen) {
+            LicensesText(Modifier.fillMaxSize())
+            return@Column
+        }
         Row(Modifier.fillMaxSize()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -145,6 +170,12 @@ fun SettingsScreen(
                 when (section) {
                     Section.APPEARANCE -> AppearanceSection(state.settings, onUiMode, onAccent)
                     Section.FILTER_LISTS -> FilterListsSection(state, onListToggled, onUpdateLists)
+                    Section.ABOUT -> AboutSection(
+                        enabledLists = state.settings.enabledLists,
+                        listState = aboutList,
+                        licensesRow = licensesRow,
+                        onOpenLicenses = { licensesOpen = true },
+                    )
                 }
             }
         }
@@ -157,7 +188,7 @@ private val arrowDirections = setOf(
 )
 
 /** Focus ring with a gap, then the fill (design.md §6). */
-private fun Modifier.focusFrame(focused: Boolean, ring: Color, fill: Color, radius: Dp = 8.dp) =
+internal fun Modifier.focusFrame(focused: Boolean, ring: Color, fill: Color, radius: Dp = 8.dp) =
     border(3.dp, if (focused) ring else Color.Transparent, RoundedCornerShape(radius + 5.dp))
         .padding(5.dp)
         .background(fill, RoundedCornerShape(radius))
@@ -206,7 +237,7 @@ private fun SectionItem(
 }
 
 @Composable
-private fun SectionTitle(@StringRes text: Int) {
+internal fun SectionTitle(@StringRes text: Int) {
     Text(
         text = stringResource(text),
         style = MaterialTheme.typography.titleMedium,
@@ -216,7 +247,7 @@ private fun SectionTitle(@StringRes text: Int) {
 }
 
 @Composable
-private fun GroupLabel(@StringRes text: Int, modifier: Modifier = Modifier) {
+internal fun GroupLabel(@StringRes text: Int, modifier: Modifier = Modifier) {
     Text(
         text = stringResource(text),
         style = MaterialTheme.typography.labelLarge,
@@ -226,7 +257,7 @@ private fun GroupLabel(@StringRes text: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Note(text: String, modifier: Modifier = Modifier) {
+internal fun Note(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodyLarge,

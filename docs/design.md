@@ -180,7 +180,8 @@ Minimum text size is **18 sp** (architecture §12); nothing is smaller.
 The top bar hides while the user scrolls or plays video, and returns with Back or the Menu
 key. The Shields panel opens as a side sheet from the right, leaving the page visible. Settings
 covers the whole screen, as in its mockup, with the page still loaded behind it: Back returns to
-it as it was.
+it as it was. Sections: Appearance, Filter lists and About. Long plain text (the license texts)
+has nothing to focus: the whole text takes focus and Up / Down scroll it most of a screen.
 
 ## 6. Focus
 
