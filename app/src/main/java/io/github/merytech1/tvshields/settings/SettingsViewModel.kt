@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.merytech1.tvshields.engine.ListRefresh
+import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.ui.theme.Accent
 import io.github.merytech1.tvshields.ui.theme.UiMode
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +56,9 @@ class SettingsViewModel(
     fun onUiMode(mode: UiMode) = store.setUiMode(mode)
 
     fun onAccent(accent: Accent) = store.setAccent(accent)
+
+    /** Applies to the next search: the address bar reads the choice each time. */
+    fun onSearchEngine(engine: SearchEngine) = store.setSearchEngine(engine)
 
     fun onListToggled(id: String) {
         // From the store, not [state]: that copy can lag behind a press made a moment ago.

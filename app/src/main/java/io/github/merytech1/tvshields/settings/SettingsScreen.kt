@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -63,6 +65,7 @@ import io.github.merytech1.tvshields.R
 import io.github.merytech1.tvshields.browser.Switch
 import io.github.merytech1.tvshields.lists.FilterList
 import io.github.merytech1.tvshields.lists.OptionalLists
+import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.ui.theme.Accent
 import io.github.merytech1.tvshields.ui.theme.LocalTvShieldsColors
 import io.github.merytech1.tvshields.ui.theme.UiMode
@@ -71,6 +74,7 @@ import io.github.merytech1.tvshields.ui.theme.tvShieldsColors
 private enum class Section(@StringRes val title: Int) {
     APPEARANCE(R.string.settings_appearance),
     FILTER_LISTS(R.string.settings_filter_lists),
+    SEARCH_ENGINE(R.string.settings_search_engine),
     ABOUT(R.string.settings_about),
 }
 
@@ -93,6 +97,7 @@ fun SettingsScreen(
     onAccent: (Accent) -> Unit,
     onListToggled: (String) -> Unit,
     onUpdateLists: () -> Unit,
+    onSearchEngine: (SearchEngine) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -170,6 +175,7 @@ fun SettingsScreen(
                 when (section) {
                     Section.APPEARANCE -> AppearanceSection(state.settings, onUiMode, onAccent)
                     Section.FILTER_LISTS -> FilterListsSection(state, onListToggled, onUpdateLists)
+                    Section.SEARCH_ENGINE -> SearchEngineSection(state.settings.searchEngine, onSearchEngine)
                     Section.ABOUT -> AboutSection(
                         enabledLists = state.settings.enabledLists,
                         listState = aboutList,
@@ -302,6 +308,60 @@ private fun AppearanceSection(settings: Settings, onUiMode: (UiMode) -> Unit, on
             }
         }
         Note(stringResource(R.string.settings_appearance_note), Modifier.padding(top = 24.dp))
+    }
+}
+
+/** Search engine (roadmap 7.2, rules P5): one row per provider, the chosen one with a check. */
+@Composable
+private fun SearchEngineSection(selected: SearchEngine, onSearchEngine: (SearchEngine) -> Unit) {
+    // Scrolls if a large font scale makes the rows taller than the screen.
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+        SectionTitle(R.string.settings_search_engine)
+        Note(stringResource(R.string.settings_search_engine_intro), Modifier.padding(bottom = 8.dp))
+        SearchEngine.entries.forEach { engine ->
+            EngineRow(engine, engine == selected, onClick = { onSearchEngine(engine) })
+        }
+    }
+}
+
+/** A provider by name and domain; plain text only, no third-party logos (mockup). */
+@Composable
+private fun EngineRow(engine: SearchEngine, selected: Boolean, onClick: () -> Unit) {
+    val colors = LocalTvShieldsColors.current
+    var focused by remember { mutableStateOf(false) }
+    val fill = when {
+        selected -> colors.accentContainer
+        focused -> colors.surfaceRaised
+        else -> colors.surface
+    }
+    val content = if (selected) colors.onAccentContainer else colors.textPrimary
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(interactionSource = null, indication = null, onClick = onClick)
+            .semantics { this.selected = selected }
+            .focusFrame(focused, colors.accent, fill)
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 64.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(text = engine.displayName, style = MaterialTheme.typography.labelLarge, color = content)
+            Text(
+                text = engine.domain,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selected) content else colors.textSecondary,
+            )
+        }
+        if (selected) {
+            Icon(
+                painter = painterResource(R.drawable.ic_check),
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 
