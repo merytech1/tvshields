@@ -640,7 +640,7 @@ No synced history and no accounts.
 | Periodic tasks | WorkManager | List updates |
 | Settings | Jetpack DataStore | Simple and asynchronous |
 | Tests | JUnit + Robolectric (Kotlin), `cargo test` (Rust), instrumented tests on the reference TV | |
-| Real-device verification | REA + `adb` on the reference TV | See [resources/rea.md](resources/rea.md) |
+| Real-device verification | REA + `adb` on the reference TV | Test sites in [testing.md](testing.md); tools in [resources/rea.md](resources/rea.md) |
 | CI | GitHub Actions | Build, tests and APK size check (T1) |
 
 ## 10. Reference device
@@ -659,7 +659,7 @@ Read over `adb` on 2026-11-08 (roadmap 0.5):
 | RAM | 1.8 GB total, ~730 MB available at idle |
 | Free storage | ~770 MB on `/data` (4 GB partition) |
 | UI resolution | 1920×1080 at 320 dpi (`xhdpi`) |
-| WebView | `com.google.android.webview` 156.0.8078.47 (updated through Play Store) |
+| WebView | `com.google.android.webview` 156.0.8078.47 (updated through Play Store; 157.0.8103.38 on 2026-11-18) |
 | Features | `leanback`, `leanback_only`, `type.television`; no touchscreen |
 
 Consequences: the `armeabi-v7a` build is the one tested on this TV; the tight free storage makes
