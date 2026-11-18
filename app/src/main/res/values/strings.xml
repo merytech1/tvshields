@@ -50,6 +50,8 @@
     <string name="lists_status_offline">No connection. Lists update when the TV is back online.</string>
     <string name="lists_status_failed">The lists could not be applied. Shields keep the current ones.</string>
     <string name="shields_scripts_replaced">Scripts replaced</string>
+    <string name="settings_search_engine">Search engine</string>
+    <string name="settings_search_engine_intro">Used when what you type is not a web address.</string>
     <string name="settings_about">About</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_app_license">Open source under the Mozilla Public License 2.0 (MPL-2.0).</string>

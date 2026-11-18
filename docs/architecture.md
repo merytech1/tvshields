@@ -583,8 +583,10 @@ the document, not the UI.
 
 ## 7. Search
 
-Brave Search is the default (P5). In Settings the user can pick a different default
-search engine. Each provider is a name, an icon and a URL template:
+Brave Search is the default (P5). In Settings → Search engine the user can pick a different
+default search engine (roadmap 7.2). The choice is saved in DataStore (`search_engine`, the
+provider's enum name; an unknown value falls back to Brave Search) and applies to the next
+search, with no restart. Each provider is a name, a domain and a URL template:
 
 | Provider | Template | Results come from | |
 |---|---|---|---|
@@ -603,7 +605,7 @@ No live suggestions (rules C10).
 
 | Data | Where |
 |---|---|
-| General settings, chosen search provider, sites with Shields off | Jetpack DataStore, one `settings` file: `ui_mode`, `accent`, `enabled_lists` (`SettingsRepository`) and `shields_off_sites` (`SiteShieldsRepository`). Each repository reads it once at start-up and then writes its changes in order |
+| General settings, chosen search provider, sites with Shields off | Jetpack DataStore, one `settings` file: `ui_mode`, `accent`, `enabled_lists`, `search_engine` (`SettingsRepository`) and `shields_off_sites` (`SiteShieldsRepository`). Each repository reads it once at start-up and then writes its changes in order |
 | Downloaded lists, `resources.json` | `filesDir/lists/` |
 | Serialized engine | `filesDir/engine.dat` (includes the crate version; regenerated if it changes) |
 | Block counters | In memory per tab (`PageShields` in the browser state). `ShieldsWebViewClient` resets them on each main-frame request and counts every block and redirect; a page restored from the back-forward cache, with no request, starts at zero. The cumulative total goes to DataStore (not stored yet). |

@@ -1,6 +1,7 @@
 package io.github.merytech1.tvshields.settings
 
 import io.github.merytech1.tvshields.engine.ListRefresh
+import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.ui.theme.Accent
 import io.github.merytech1.tvshields.ui.theme.UiMode
 import kotlinx.coroutines.CompletableDeferred
@@ -29,6 +30,7 @@ class SettingsViewModelTest {
         override fun setAccent(accent: Accent) = change { it.copy(accent = accent) }
         override fun setListEnabled(id: String, enabled: Boolean) =
             change { it.copy(enabledLists = if (enabled) it.enabledLists + id else it.enabledLists - id) }
+        override fun setSearchEngine(engine: SearchEngine) = change { it.copy(searchEngine = engine) }
     }
 
     private val store = FakeSettings()
@@ -65,6 +67,14 @@ class SettingsViewModelTest {
         vm.onAccent(Accent.EMERALD)
         assertEquals(Settings(UiMode.LIGHT, Accent.EMERALD), store.settings.value)
         runBlocking { withTimeout(5_000) { vm.state.first { it.settings.uiMode == UiMode.LIGHT } } }
+    }
+
+    @Test
+    fun `the search engine applies at once and needs no list update`() {
+        vm.onSearchEngine(SearchEngine.DUCKDUCKGO)
+        assertEquals(SearchEngine.DUCKDUCKGO, store.settings.value!!.searchEngine)
+        runBlocking { withTimeout(5_000) { vm.state.first { it.settings.searchEngine == SearchEngine.DUCKDUCKGO } } }
+        assertEquals(0, refreshes.get())
     }
 
     @Test

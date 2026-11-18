@@ -254,6 +254,7 @@ fun BrowserScreen(
                 onAccent = settings::onAccent,
                 onListToggled = settings::onListToggled,
                 onUpdateLists = settings::onUpdateLists,
+                onSearchEngine = settings::onSearchEngine,
                 onClose = {
                     settingsOpen = false
                     settingsFocus.requestFocus()
