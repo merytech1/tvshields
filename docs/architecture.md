@@ -115,7 +115,7 @@ tvshields/
 ├── tools/
 │   ├── resources/             # resources.json generator (Node.js, CI only)
 │   ├── licenses/              # third_party_licenses.txt generator (Node.js, run by hand)
-│   └── capture/               # request recording on the TV's WebView (Node.js, phase 8)
+│   └── capture/               # request recording and comparison on the TV's WebView (Node.js, phase 8)
 ├── app/                       # Android module
 │   ├── build.gradle.kts
 │   └── src/main/

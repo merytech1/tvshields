@@ -86,8 +86,8 @@ What each site requests when Shields are off, recorded on the reference TV on 20
   - Consent banners were left unanswered, so sites that wait for consent load fewer ads.
   - Videos only played when the site starts them by itself (YouTube and Pluto TV start muted).
 - **Classification:** `tools/capture/inventory.mjs` groups requests by domain and sorts third-party
-  services into ads, tracking and consent with a hand-made table. The table is independent of the
-  filter lists, so 8.3 can compare Shields against it. Third-party requests not in the table (CDNs,
+  services into ads, tracking and consent with a hand-made table (`tools/capture/classify.mjs`).
+  The table is independent of the filter lists, so 8.3 can compare Shields against it. Third-party requests not in the table (CDNs,
   players, paywalls) are counted as "other" and not shown here.
 - **Raw captures:** not kept in the repository, because they contain per-device identifiers and
   consent strings.
@@ -143,3 +143,108 @@ Requests in the recorded load; in parentheses, the number of distinct domains.
 
 Limits: one load of one page per site; counts change from load to load and as sites change their
 ads. Only services in the classification table are counted as ads or tracking.
+
+## 4. Blocked and leaked requests (roadmap 8.3)
+
+The same sites with Shields on, recorded on the reference TV on 2026-11-18, right after 8.2. Each
+request is compared with the app's own block log.
+
+### How it was recorded
+
+- **Block log:**
+  - Run `adb shell setprop log.tag.tvshields.block DEBUG`, then restart the app.
+  - The app then logs every blocked or redirected request under the `tvshields.block` tag (see
+    [architecture.md](architecture.md)).
+  - After a restart, the WebView only answers DevTools once a page has loaded, so open any page
+    from the address bar first.
+- **Load:**
+  - For each site, with Shields on:
+    1. A first load (15 s), then `about:blank`.
+    2. Clear the log, then record a second load through DevTools with `tools/capture/requests.mjs`
+       (45 s; 60 s for Pluto TV).
+    3. Dump the log with `adb logcat -d -v raw -s tvshields.block:D`.
+  - No interaction, as in 8.2.
+- **Comparison:** `tools/capture/compare.mjs` matches the recorded requests with the log by URL:
+  - The log keeps the URL fragment (`#…`) and DevTools drops it, so fragments are ignored.
+  - A blocked request can appear several times in the recording (for example a blocked `fetch`
+    that the page retries), so URLs are matched as a set.
+  - An ad or tracking request (same table as 8.2) that is not in the log reached its server: it
+    **leaked**.
+- **Reference:** the "Shields off" numbers are the 8.2 load of the same page
+  ([§3](#3-ad-inventory-without-blocking-roadmap-82)).
+
+### Results
+
+"Off" is the 8.2 load; "on" is the load with Shields on. For ads and tracking: requests with
+Shields off, then requests blocked / leaked with Shields on.
+
+| Site | Requests off → on | Blocked (log) | Ads off → blocked / leaked | Tracking off → blocked / leaked | What leaked |
+|---|---|---|---|---|---|
+| El País | 98 → 64 | 6 | 17 → 2 / 0 | 21 → 4 / 1 | Adobe Launch script (`assets.adobedtm.com`) |
+| El Tiempo | 217 → 118 | 27 | 85 → 8 / 0 | 48 → 15 / 4 | Tealium tag manager scripts (`tags.tiqcdn.com`) |
+| Marca | 140 → 151 | 28 | 17 → 17 / 0 | 6 → 9 / 2 | Tealium tag manager scripts (`tags.tiqcdn.com`) |
+| The Verge | 232 → 194 | 13 | 24 → 8 / 2 | 13 → 1 / 0 | Concert ad library scripts (`cdn.concert.io`) |
+| CNN | 404 → 74 | 4 | 329 → 1 / 0 | 0 → 0 / 0 | none |
+| YouTube (video page) | 67 → 62 | 12 | 4 → 4 / 0 | 12 → 5 / 6 | Playback statistics (`youtube.com/api/stats`) |
+| Dailymotion (video page) | 114 → 129 | 34 | 4 → 1 / 0 | 0 → 0 / 0 | none |
+| Pluto TV | 227 → 228 | 24 | 7 → 11 / 1 | 14 → 12 / 0 | Google PAL loader (`imasdk.googleapis.com/pal`) |
+| ViX | 192 → 187 | 12 | 0 → 0 / 0 | 5 → 4 / 1 | Segment settings (`cdn.segment.com`) |
+| Wikipedia | 30 → 30 | 2 | 0 → 0 / 0 | 0 → 0 / 0 | none |
+| Can You Block It | 86 → 79 | 6 | 3 → 1 / 0 | 4 → 2 / 0 | none |
+| **Total** | **1807 → 1316** | **168** | **490 → 53 / 3** | **123 → 52 / 14** | |
+
+### Findings
+
+- **Blocking a loader stops what it would load:**
+  - With Shields on, pages make far fewer ad requests: 56 instead of 490. Only 3 of them reached
+    a server.
+  - CNN's Brightline loop (328 requests in 8.2) does not start: its loader is blocked.
+  - El Tiempo makes 8 ad requests instead of 85.
+- **What leaks is mostly the loader itself:**
+  - Tag managers and ad libraries that the default lists do not block reach their servers:
+    - Tealium on El Tiempo and Marca.
+    - Adobe Launch on El País.
+    - Concert on The Verge.
+    - Google PAL on Pluto TV.
+  - Most of the requests they make afterwards are blocked:
+    - El País: Adobe's measurement modules, `demdex.net` and `omtrdc.net`.
+    - The Verge: Concert's `fins/segment` and `lookup` calls.
+- **YouTube's playback statistics are not blocked** (`api/stats/playback`, `watchtime`, `atr`).
+  The default lists leave them. Its `log_event` calls and ad requests are blocked.
+- **Blocked requests can be retried:** Pluto TV made 11 ad requests with Shields on and 7 without.
+  The page repeats requests that fail. Pluto's in-stream ads (C7) are unaffected either way.
+- **First-party tracking is blocked too, with no visible breakage:**
+  - The Verge's own tag manager and event endpoints.
+  - YouTube's `log_event`.
+  - CNN's Adobe Launch on `lightning.cnn.com`.
+  - Marca's pixel counter.
+  - Wikipedia's banner impression beacon and Wikimedia's event intake.
+- **Dailymotion:**
+  - 28 of its 34 blocks are its own event tracking (`dm-event.net`).
+  - 4 are video manifest requests that carry consent and ad parameters
+    (`dmxleo.dailymotion.com/cdn/manifest`).
+  - The video still played. Watch this site when the lists change: a broader rule there would stop
+    playback.
+- **ViX:** the 6 "other" blocks are bot-detection collectors (PerimeterX). The page worked.
+- **CORS preflights bypass the block log:**
+  - Preflight (`OPTIONS`) requests do not go through `shouldInterceptRequest`, and the WebView API
+    has no hook for them.
+  - 7 preflights to blocked URLs got a response: 4 on El Tiempo, 1 on The Verge, 2 on Pluto TV.
+  - A preflight carries no cookies or body, and the real request after it was blocked.
+- **No breakage seen:**
+  - Every page loaded with Shields on.
+  - The videos on YouTube, Dailymotion and Pluto TV played.
+  - The consent banners of El País and ViX were hidden.
+- **Cosmetic leak:**
+  - On this load Marca showed its "get the app" banner (Google Play) above the page. It was not
+    there on the load after 8.2.
+  - Cosmetic filtering is not measured here. Check this banner when cosmetic filtering is tested
+    again.
+
+Limits:
+- One load per site. The Shields-on and Shields-off loads were made at different times, so the
+  page and its ads can differ between them.
+- Requests made outside the page's DevTools session are not in the recording. The log of every
+  site matched the recording, so none were seen.
+- The table only counts ads and tracking from the 8.2 classification. The "Blocked" column counts
+  everything in the log.
