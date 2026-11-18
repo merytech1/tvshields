@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.ui.theme.Accent
 import io.github.merytech1.tvshields.ui.theme.UiMode
 import kotlinx.coroutines.CoroutineScope
@@ -16,12 +17,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** The user's choices in Settings (roadmap 6.3). */
+/** The user's choices in Settings (roadmap 6.3 and 7.2). */
 data class Settings(
     val uiMode: UiMode = UiMode.DARK,
     val accent: Accent = Accent.PURPLE,
     /** Ids of the enabled [io.github.merytech1.tvshields.lists.OptionalLists]. */
     val enabledLists: Set<String> = emptySet(),
+    /** Brave Search on a fresh install (rules P5). */
+    val searchEngine: SearchEngine = SearchEngine.BRAVE,
 )
 
 /** Reads and changes [Settings]. A change applies at once; the write happens in the background. */
@@ -37,6 +40,8 @@ interface SettingsStore {
     fun setAccent(accent: Accent)
 
     fun setListEnabled(id: String, enabled: Boolean)
+
+    fun setSearchEngine(engine: SearchEngine)
 }
 
 /**
@@ -73,6 +78,9 @@ class SettingsRepository(
         prefs[ENABLED_LISTS] = if (enabled) current + id else current - id
     }
 
+    override fun setSearchEngine(engine: SearchEngine) =
+        change({ it.copy(searchEngine = engine) }) { it[SEARCH_ENGINE] = engine.name }
+
     private fun change(inMemory: (Settings) -> Settings, onDisk: (MutablePreferences) -> Unit) {
         _settings.update { inMemory(it ?: Settings()) }
         writer.write(onDisk)
@@ -82,12 +90,14 @@ class SettingsRepository(
         val UI_MODE = stringPreferencesKey("ui_mode")
         val ACCENT = stringPreferencesKey("accent")
         val ENABLED_LISTS = stringSetPreferencesKey("enabled_lists")
+        val SEARCH_ENGINE = stringPreferencesKey("search_engine")
 
         /** Unknown values (a newer version's, or a damaged file) fall back to the defaults. */
         fun read(prefs: Preferences) = Settings(
             uiMode = UiMode.entries.firstOrNull { it.name == prefs[UI_MODE] } ?: UiMode.DARK,
             accent = Accent.entries.firstOrNull { it.name == prefs[ACCENT] } ?: Accent.PURPLE,
             enabledLists = prefs[ENABLED_LISTS].orEmpty(),
+            searchEngine = SearchEngine.entries.firstOrNull { it.name == prefs[SEARCH_ENGINE] } ?: SearchEngine.BRAVE,
         )
     }
 }

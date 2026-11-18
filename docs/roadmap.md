@@ -77,7 +77,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | # | Task | Done when | Status |
 |---|---|---|---|
 | 7.1 | Text → URL or search resolution | Unit tests for edge cases (`localhost`, IPs, `foo.bar`, phrases) | ⬜ |
-| 7.2 | Default search engine picker in Settings (Brave Search, DuckDuckGo, Startpage, Google) | Brave Search on a fresh install; a changed choice persists and applies to the next search | ⬜ |
+| 7.2 | Default search engine picker in Settings (Brave Search, DuckDuckGo, Startpage, Google) | Brave Search on a fresh install; a changed choice persists and applies to the next search | ✅ |
 
 ## Phase 8 — Verification on the real TV (with REA)
 

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.merytech1.tvshields.search.SearchEngine
 import io.github.merytech1.tvshields.ui.theme.Accent
 import io.github.merytech1.tvshields.ui.theme.UiMode
 import kotlinx.coroutines.CoroutineScope
@@ -51,9 +52,22 @@ class SettingsRepositoryTest {
     private fun current(repository: SettingsRepository) = runBlocking { withTimeout(5_000) { repository.current() } }
 
     @Test
-    fun `a fresh install has dark, purple and no optional lists`() {
+    fun `a fresh install has dark, purple, no optional lists and Brave Search`() {
         val settings = current(SettingsRepository(MemoryStore(), scope))
-        assertEquals(Settings(UiMode.DARK, Accent.PURPLE, emptySet()), settings)
+        assertEquals(Settings(UiMode.DARK, Accent.PURPLE, emptySet(), SearchEngine.BRAVE), settings)
+    }
+
+    @Test
+    fun `the chosen search engine persists`() {
+        val store = MemoryStore()
+        val repository = SettingsRepository(store, scope)
+        current(repository)
+
+        repository.setSearchEngine(SearchEngine.STARTPAGE)
+        assertEquals(SearchEngine.STARTPAGE, repository.settings.value!!.searchEngine)
+
+        runBlocking { withTimeout(5_000) { store.data.first { it[stringPreferencesKey("search_engine")] == "STARTPAGE" } } }
+        assertEquals(SearchEngine.STARTPAGE, current(SettingsRepository(store, scope)).searchEngine)
     }
 
     @Test
@@ -85,6 +99,7 @@ class SettingsRepositoryTest {
             mutablePreferencesOf(
                 stringPreferencesKey("ui_mode") to "SEPIA",
                 stringPreferencesKey("accent") to "ORANGE",
+                stringPreferencesKey("search_engine") to "ALTAVISTA",
             ),
         )
         assertEquals(Settings(), current(SettingsRepository(store, scope)))

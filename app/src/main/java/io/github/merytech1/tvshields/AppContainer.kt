@@ -34,13 +34,14 @@ class AppContainer(val context: Context) {
     /** Work that outlives any screen, such as loading the engine. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // Brave Search until the search engine setting exists (roadmap 7.2).
-    val searchResolver = SearchResolver { SearchEngine.BRAVE }
-
     /** General settings and the sites with Shields off (architecture §8). One instance per file. */
     private val settingsStore = PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 
     val settings = SettingsRepository(settingsStore, appScope)
+
+    // The engine chosen in Settings (roadmap 7.2), read at each search. MainActivity waits for the
+    // settings before showing the browser; Brave Search is only a fallback.
+    val searchResolver = SearchResolver { settings.settings.value?.searchEngine ?: SearchEngine.BRAVE }
 
     // The default lists plus those turned on in Settings (roadmap 6.3).
     val filterLists = FilterListRepository(
