@@ -114,7 +114,8 @@ tvshields/
 │       └── engine.rs          # wrapper around adblock::Engine
 ├── tools/
 │   ├── resources/             # resources.json generator (Node.js, CI only)
-│   └── licenses/              # third_party_licenses.txt generator (Node.js, run by hand)
+│   ├── licenses/              # third_party_licenses.txt generator (Node.js, run by hand)
+│   └── capture/               # request recording on the TV's WebView (Node.js, phase 8)
 ├── app/                       # Android module
 │   ├── build.gradle.kts
 │   └── src/main/

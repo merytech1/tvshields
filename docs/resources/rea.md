@@ -37,6 +37,14 @@ rea list-browser-targets http://127.0.0.1:9222
 This shows, **on the real TV**, which ad requests leak through and which elements remain visible
 on each page.
 
+**Limitation (REA 6.8.0, 2026-11-18):** REA's browser commands (`list-browser-targets`,
+`observe-web-session`) reject the WebView endpoint. They expect a browser WebSocket of the form
+`ws://127.0.0.1:PORT/devtools/browser/<id>`, and the WebView publishes `ws://127.0.0.1:PORT/devtools/browser`
+without an id. Until that changes, phase 8 records requests with `tools/capture/requests.mjs`,
+which talks to the same forwarded port through the Chrome DevTools Protocol (see
+[testing.md](../testing.md#3-ad-inventory-without-blocking-roadmap-82)). REA's adb commands are
+not affected.
+
 ## adb setup for REA
 
 ```bash
