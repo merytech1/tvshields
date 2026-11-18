@@ -84,7 +84,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 | # | Task | Done when | Status |
 |---|---|---|---|
 | 8.1 | List of representative test sites (news, video, streaming) | Documented in [`docs/testing.md`](testing.md) | ✅ |
-| 8.2 | Observe each site with REA (no blocking) to inventory ad requests | Inventory per site | ⬜ |
+| 8.2 | Observe each site with REA (no blocking) to inventory ad requests | Inventory per site ([testing §3](testing.md#3-ad-inventory-without-blocking-roadmap-82)) | ✅ |
 | 8.3 | Compare against tvshields on the TV (logs over `adb`) | Blocked / leaked table per site | ⬜ |
 | 8.4 | Performance: launch time, RAM, time per page | Measurements recorded. Meets T7 | ⬜ |
 
