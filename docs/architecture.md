@@ -593,9 +593,23 @@ search engine. Each provider is a name, an icon and a URL template:
 | Startpage | `https://www.startpage.com/do/search?q=%s` | Google, without tracking | selectable |
 | Google | `https://www.google.com/search?q=%s` | Google | selectable |
 
-`search/` resolves what is typed in the address bar:
-- If it looks like a URL (`domain.tld`, `http…`) → it is opened.
-- Otherwise → the chosen provider's template.
+`search/` resolves what is typed in the address bar (`SearchResolver`, roadmap 7.1):
+
+| Typed | Result | Examples |
+|---|---|---|
+| An `http://` or `https://` URL | Opened as typed | `http://example.com/a?b=1` |
+| A public domain: valid labels and a real top-level domain, optional port (1–65535), path, query or fragment | `https://` + text | `example.com`, `foo.bar`, `españa.com`, `пример.рф`, `example.com:8443/x` |
+| A local address | `http://` + text (local devices rarely have TLS) | `localhost:3000`, `192.168.1.13`, `[::1]:8080`, `printer.local`, `nas.home.arpa` |
+| Anything else | The chosen provider's template | `file.txt`, `node.js`, `1.5`, `999.1.1.1`, `AC/DC`, `router`, `user@example.com`, text with spaces |
+| Text starting with `?` | Always searched (without the `?`) | `? example.com` |
+
+- Other schemes (`javascript:`, `file:`, `intent:`) are searched, never opened.
+- A top-level domain is real if it is in IANA's list, bundled as
+  `app/src/main/resources/…/search/tlds.txt` (version 2026111800, about 1,440 entries). Its first
+  line gives the version. To update it, replace the file with
+  `https://data.iana.org/TLD/tlds-alpha-by-domain.txt`. Internationalized top-level domains are
+  compared in their ASCII form (`рф` = `xn--p1ai`).
+- A single word with a path (`AC/DC`) is searched: to open an intranet name, type `http://router`.
 
 No live suggestions (rules C10).
 
