@@ -3,6 +3,8 @@
 A lightweight, open-source browser for **Android TV** that blocks ads and trackers
 in the style of Brave's *Shields*, built to be used with the TV remote.
 
+*[Leer en español](README.es.md)*
+
 > **Status:** v0.1.0 released. Download it from
 > [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). See the
 > [roadmap](docs/roadmap.md) for what comes next.
