@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release signing (roadmap 9.2). The key never enters the repo: CI restores it from GitHub secrets
+// and passes it through these variables. Without them the release APK is built unsigned.
+val releaseKeystore = providers.environmentVariable("TVSHIELDS_KEYSTORE").orNull
+val releaseKeystorePassword = providers.environmentVariable("TVSHIELDS_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("TVSHIELDS_KEY_ALIAS").orElse("tvshields").get()
+
 android {
     namespace = "io.github.merytech1.tvshields"
     compileSdk = 37
@@ -22,8 +28,21 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                // PKCS12 keystores use the store password for the key too.
+                keyPassword = releaseKeystorePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

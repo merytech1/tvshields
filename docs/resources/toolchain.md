@@ -120,3 +120,49 @@ the Gradle wrapper) on `ubuntu-latest`:
 The instrumented tests (`app/src/androidTest`) are built but not run: the engine only exists for
 ARM, and they run on the TV with `connectedDebugAndroidTest`. `.github/workflows/resources.yml`
 checks the resource generator separately, when `tools/resources/` or `engine/` change.
+
+The toolchain setup and the engine build are shared by both APK workflows through
+`.github/actions/android-build`.
+
+## Release signing
+
+`.github/workflows/release.yml` builds `app-release.apk` signed with the release key (roadmap
+9.2). It runs when a `v*` tag is pushed, or by hand from the Actions tab ("release", "Run
+workflow"). It checks the signature with `apksigner`, prints the certificate and the APK's SHA-256,
+and keeps the APK as the `release-apk` artifact.
+
+The key never enters the repository. It lives in two GitHub secrets:
+
+| Secret | Value |
+|---|---|
+| `RELEASE_KEYSTORE_BASE64` | The PKCS12 keystore, in base64 |
+| `RELEASE_KEYSTORE_PASSWORD` | Its password (PKCS12 uses it for the key too) |
+
+`app/build.gradle.kts` signs the release build only when `TVSHIELDS_KEYSTORE` (path to the
+keystore) and `TVSHIELDS_KEYSTORE_PASSWORD` are set; the key alias is `tvshields` unless
+`TVSHIELDS_KEY_ALIAS` says otherwise. Without them, local and CI builds stay unsigned.
+
+**Creating the key (once, by the maintainer).** In PowerShell, outside the repository. `keytool`
+asks for the password; use a long one and keep it in a password manager:
+
+```powershell
+New-Item -ItemType Directory -Force D:\dev\keys
+```
+
+```powershell
+& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -storetype PKCS12 -keystore D:\dev\keys\tvshields-release.p12 -alias tvshields -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=tvshields"
+```
+
+Then store it in the repository secrets. `gh` asks for the password without echoing it:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\dev\keys\tvshields-release.p12")) | gh secret set RELEASE_KEYSTORE_BASE64 --repo merytech1/tvshields
+```
+
+```powershell
+gh secret set RELEASE_KEYSTORE_PASSWORD --repo merytech1/tvshields
+```
+
+**Keep a backup** of `tvshields-release.p12` and its password outside this PC. Android only
+installs an update signed with the same key: if the key is lost, users have to uninstall the app
+to install a new version.
