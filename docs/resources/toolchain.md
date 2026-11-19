@@ -208,8 +208,11 @@ Releases are published from `develop` while `main` stays locked (roadmap 9.4). F
    ```
 3. `release.yml` checks that the tag matches `versionName`, builds and signs the APKs, and creates
    a **draft** release `vX.Y.Z` with `tvshields-vX.Y.Z-universal.apk`,
-   `tvshields-vX.Y.Z-armeabi-v7a.apk`, `tvshields-vX.Y.Z-arm64-v8a.apk` and `SHA256SUMS`, with the
-   notes file as its text.
+   `tvshields-vX.Y.Z-armeabi-v7a.apk`, `tvshields-vX.Y.Z-arm64-v8a.apk`, `tvshields.apk` and
+   `SHA256SUMS`, with the notes file as its text. `tvshields.apk` is a copy of the universal APK
+   under a fixed name, so
+   `https://github.com/merytech1/tvshields/releases/latest/download/tvshields.apk` always downloads
+   the latest version (used by the Downloader app on a TV).
 4. Install the published file on the reference TV (`armeabi-v7a`) and check that it opens a page
    with Shields on.
 5. Publish the draft on GitHub ("Edit", "Publish release"), as the latest release.

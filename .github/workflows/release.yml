@@ -1,7 +1,9 @@
 # Builds the release APKs (universal and one per ABI) signed with the release key (roadmap 9.2) and,
 # on a version tag, creates a draft GitHub release with them (roadmap 9.4). The maintainer reviews
-# the draft and publishes it. The key lives only in GitHub secrets: RELEASE_KEYSTORE_BASE64 (the
-# PKCS12 file in base64) and RELEASE_KEYSTORE_PASSWORD.
+# the draft and publishes it. Every release also carries tvshields.apk, a copy of the universal APK
+# under a fixed name, so /releases/latest/download/tvshields.apk always serves the latest version.
+# The key lives only in GitHub secrets: RELEASE_KEYSTORE_BASE64 (the PKCS12 file in base64) and
+# RELEASE_KEYSTORE_PASSWORD.
 name: release
 
 on:
@@ -83,7 +85,8 @@ jobs:
           name: release-apks
           path: dist
 
-      # app-<abi>-release.apk becomes tvshields-<tag>-<abi>.apk.
+      # app-<abi>-release.apk becomes tvshields-<tag>-<abi>.apk. tvshields.apk is the universal APK
+      # under a fixed name, for the Downloader URL that always points to the latest release.
       - name: Name the files and write the checksums
         working-directory: dist
         run: |
@@ -91,6 +94,7 @@ jobs:
             abi=${apk#app-}
             mv "$apk" "tvshields-$GITHUB_REF_NAME-${abi%-release.apk}.apk"
           done
+          cp "tvshields-$GITHUB_REF_NAME-universal.apk" tvshields.apk
           sha256sum *.apk > SHA256SUMS
           cat SHA256SUMS
 
