@@ -47,7 +47,7 @@ jobs:
         run: ./gradlew :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest
 
       - name: Check the APK size
-        run: .github/scripts/apk-size.sh app/build/outputs/apk/release/app-release-unsigned.apk
+        run: .github/scripts/apk-size.sh app/build/outputs/apk/release/*.apk
 
       - name: Upload the test reports
         if: failure()
@@ -61,6 +61,6 @@ jobs:
         with:
           name: apks
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/debug/app-universal-debug.apk
+            app/build/outputs/apk/release/app-universal-release-unsigned.apk
           retention-days: 14

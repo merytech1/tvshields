@@ -1,6 +1,7 @@
-# Builds the release APK signed with the release key (roadmap 9.2). The key lives only in GitHub
-# secrets: RELEASE_KEYSTORE_BASE64 (the PKCS12 file in base64) and RELEASE_KEYSTORE_PASSWORD.
-# Runs on version tags and by hand; publishing to GitHub Releases is roadmap 9.4.
+# Builds the release APKs (universal and one per ABI) signed with the release key (roadmap 9.2) and,
+# on a version tag, creates a draft GitHub release with them (roadmap 9.4). The maintainer reviews
+# the draft and publishes it. The key lives only in GitHub secrets: RELEASE_KEYSTORE_BASE64 (the
+# PKCS12 file in base64) and RELEASE_KEYSTORE_PASSWORD.
 name: release
 
 on:
@@ -13,10 +14,19 @@ permissions:
 
 jobs:
   apk:
-    name: Signed release APK
+    name: Signed release APKs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check that the tag matches versionName
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $version in app/build.gradle.kts."
+            exit 1
+          fi
 
       - uses: ./.github/actions/android-build
 
@@ -31,7 +41,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
           echo "TVSHIELDS_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
-      - name: Build the signed APK
+      - name: Build the signed APKs
         env:
           TVSHIELDS_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
         run: ./gradlew :app:assembleRelease
@@ -40,17 +50,59 @@ jobs:
         if: always()
         run: rm -f "$RUNNER_TEMP/release.p12"
 
-      - name: Verify the signature
+      - name: Verify the signatures
+        working-directory: app/build/outputs/apk/release
         run: |
-          apk=app/build/outputs/apk/release/app-release.apk
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
-          "$apksigner" verify --print-certs "$apk"
-          sha256sum "$apk"
+          for apk in *.apk; do
+            echo "== $apk"
+            "$apksigner" verify --print-certs "$apk"
+          done
+          sha256sum *.apk
 
       - name: Check the APK size
-        run: .github/scripts/apk-size.sh app/build/outputs/apk/release/app-release.apk
+        run: .github/scripts/apk-size.sh app/build/outputs/apk/release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          name: release-apks
+          path: app/build/outputs/apk/release/*.apk
+
+  publish:
+    name: Draft GitHub release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-apks
+          path: dist
+
+      # app-<abi>-release.apk becomes tvshields-<tag>-<abi>.apk.
+      - name: Name the files and write the checksums
+        working-directory: dist
+        run: |
+          for apk in app-*-release.apk; do
+            abi=${apk#app-}
+            mv "$apk" "tvshields-$GITHUB_REF_NAME-${abi%-release.apk}.apk"
+          done
+          sha256sum *.apk > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="docs/releases/$GITHUB_REF_NAME.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::Release notes $notes are missing."
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "tvshields $GITHUB_REF_NAME" --notes-file "$notes" \
+            dist/*.apk dist/SHA256SUMS

@@ -87,14 +87,15 @@ adb version
 sdk.dir=D:/dev/android-sdk
 ```
 
-Build the engine first (`engine/build-android.sh`), then the APK, then install it on the TV:
+Build the engine first (`engine/build-android.sh`), then the APK, then install it on the TV.
+Gradle builds one APK per ABI plus a universal one (`app-<abi>-<build type>.apk`, roadmap 9.4):
 
 ```bash
 ./gradlew assembleDebug
 ```
 
 ```bash
-adb -s 192.168.1.13:5555 install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s 192.168.1.13:5555 install -r app/build/outputs/apk/debug/app-universal-debug.apk
 ```
 
 Run the instrumented tests (JNI smoke test) on the TV:
@@ -115,7 +116,7 @@ the Gradle wrapper) on `ubuntu-latest`:
 | Job | Steps |
 |---|---|
 | Rust engine tests | `cargo test --locked` in `engine/` |
-| APK and Kotlin tests | `engine/build-android.sh`, then `./gradlew :app:testDebugUnitTest`, then the debug, release (unsigned) and instrumented-test APKs, then the size check of the release APK. The debug and release APKs are kept as a build artifact for 14 days. |
+| APK and Kotlin tests | `engine/build-android.sh`, then `./gradlew :app:testDebugUnitTest`, then the debug, release (unsigned) and instrumented-test APKs, then the size check of the release APKs. The universal debug and release APKs are kept as a build artifact for 14 days. |
 
 The instrumented tests (`app/src/androidTest`) are built but not run: the engine only exists for
 ARM, and they run on the TV with `connectedDebugAndroidTest`. `.github/workflows/resources.yml`
@@ -124,22 +125,23 @@ checks the resource generator separately, when `tools/resources/` or `engine/` c
 The toolchain setup and the engine build are shared by both APK workflows through
 `.github/actions/android-build`.
 
-**APK size (rules T1, roadmap 9.3).** `.github/scripts/apk-size.sh` checks the release APK in both
-workflows: the job fails above 100 MB and shows a warning above the 25 MB target (1 MB =
+**APK size (rules T1, roadmap 9.3).** `.github/scripts/apk-size.sh` checks the release APKs in
+both workflows: the job fails above 100 MB and shows a warning above the 25 MB target (1 MB =
 1,048,576 bytes). Each run lists the sizes in its job summary. To try it locally:
 
 ```bash
-.github/scripts/apk-size.sh app/build/outputs/apk/release/app-release-unsigned.apk
+.github/scripts/apk-size.sh app/build/outputs/apk/release/*.apk
 ```
 
 `APK_MAX_MB` and `APK_WARN_MB` override the two limits, to test the warning and the failure.
 
 ## Release signing
 
-`.github/workflows/release.yml` builds `app-release.apk` signed with the release key (roadmap
-9.2). It runs when a `v*` tag is pushed, or by hand from the Actions tab ("release", "Run
-workflow"). It checks the signature with `apksigner`, prints the certificate and the APK's SHA-256,
-checks the APK size, and keeps the APK as the `release-apk` artifact.
+`.github/workflows/release.yml` builds the release APKs (universal and one per ABI) signed with the
+release key (roadmap 9.2). It runs when a `v*` tag is pushed, or by hand from the Actions tab
+("release", "Run workflow"). It checks each signature with `apksigner`, prints the certificate and
+the APKs' SHA-256, checks their size, and keeps them as the `release-apks` artifact. On a tag it
+also creates the draft GitHub release (see [Publishing a release](#publishing-a-release)).
 
 The key never enters the repository. It lives in two GitHub secrets:
 
@@ -192,3 +194,22 @@ scheme v2).
 
 APKs from this key do not install over a build signed with the debug key (the one used on the TV
 so far): uninstall the debug build once before installing a release.
+
+## Publishing a release
+
+Releases are published from `develop` while `main` stays locked (roadmap 9.4). For version
+`X.Y.Z`:
+
+1. In a PR to `develop`: set `versionName = "X.Y.Z"` and a higher `versionCode` in
+   `app/build.gradle.kts`, and write the release notes in `docs/releases/vX.Y.Z.md`.
+2. After the merge, tag the merge commit and push the tag:
+   ```bash
+   git tag -a vX.Y.Z -m "tvshields vX.Y.Z" && git push origin vX.Y.Z
+   ```
+3. `release.yml` checks that the tag matches `versionName`, builds and signs the APKs, and creates
+   a **draft** release `vX.Y.Z` with `tvshields-vX.Y.Z-universal.apk`,
+   `tvshields-vX.Y.Z-armeabi-v7a.apk`, `tvshields-vX.Y.Z-arm64-v8a.apk` and `SHA256SUMS`, with the
+   notes file as its text.
+4. Install the published file on the reference TV (`armeabi-v7a`) and check that it opens a page
+   with Shields on.
+5. Publish the draft on GitHub ("Edit", "Publish release"), as the latest release.
