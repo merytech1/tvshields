@@ -1,5 +1,7 @@
 # Roadmap: fases y tareas
 
+*[Read in English](../roadmap.md)*
+
 Cada tarea es una unidad de trabajo que se termina, explica, aprueba y confirma por separado
 (reglas W1). El estado se actualiza en este archivo al cerrar cada tarea.
 

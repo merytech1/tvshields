@@ -1,5 +1,7 @@
 # Reglas y restricciones
 
+*[Read in English](../rules.md)*
+
 Toda decisión de diseño y toda línea de código deben cumplir estas reglas. Cada regla tiene un ID
 para poder citarla en issues, commits y revisiones (por ejemplo, «cumple T1»).
 
@@ -66,7 +68,7 @@ implementar nada.
 | C5 | P3 × T5 | El motor no sabe nada de «sitios con Shields desactivados». | El interruptor por sitio se resuelve en Kotlin **antes** de llamar al motor; el motor no se modifica. |
 | C6 | T9 × T6 | Actualizar las listas implica peticiones automáticas. | T9 lo permite explícitamente: solo a las URL del catálogo de listas y al recurso `resources.json` de la release (C11), y se muestran en la pantalla «Acerca de». Nada más sale sin una acción del usuario. |
 | C7 | P1 × T4 | Algunos anuncios (por ejemplo, algunos de YouTube) llegan **dentro del propio flujo de vídeo** y no se pueden cortar a nivel de red. | No está garantizado en el alcance: se cubre solo en la medida en que lo cubran los scriptlets de las listas (1.3). Documentado como limitación conocida, no como error. |
-| C8 | P6 × T4 | El WebView está pensado para tacto/ratón; muchas páginas no se pueden usar con las flechas. | Un cursor virtual que se mueve con las flechas y genera eventos táctiles en el WebView, más un modo de navegación por foco. Véase la [arquitectura §6](../architecture.md#6-tv-remote) (en inglés). |
+| C8 | P6 × T4 | El WebView está pensado para tacto/ratón; muchas páginas no se pueden usar con las flechas. | Un cursor virtual que se mueve con las flechas y genera eventos táctiles en el WebView, más un modo de navegación por foco. Véase la [arquitectura §6](architecture.md#6-mando-de-la-tv). |
 | C9 | L2 × C1 | Incluir una lista «de emergencia» para el primer arranque reabriría el problema de licencias (GPL / CC BY-SA). | No se incluye ninguna lista; C1 se resuelve con la descarga inicial. |
 | C10 | T9 × P5 | El motor de búsqueda recibe lo que se escribe en la barra de direcciones. | Solo cuando el usuario busca (acción explícita). Sin sugerencias en vivo por defecto. |
 | C11 | L2 × T6 × 1.3 | Los scriptlets de uBlock Origin (GPLv3) son esenciales para 1.3, pero incluirlos en el APK obligaría a licenciar la app bajo GPL. | No están en el APK. Un generador de CI construye `resources.json` (uBO + Brave) y lo publica como archivo independiente en GitHub Releases, con su licencia GPLv3 y un enlace al código de uBO. La app lo descarga en tiempo de ejecución, como las listas (T6). |

@@ -53,7 +53,7 @@ certificado y más detalle están en las [notas de la v0.1.0](docs/releases/v0.1
 | Listas de filtros | Catálogo de Brave: uBlock Origin, EasyList, EasyPrivacy, Brave, Fanboy (se descargan en tiempo de ejecución) |
 | Pruebas en el dispositivo | [REA](https://github.com/morluto/rea) + `adb` |
 
-Detalles en la [arquitectura](docs/architecture.md) (en inglés).
+Detalles en la [arquitectura](docs/es/architecture.md).
 
 ## Documentación
 
@@ -61,7 +61,7 @@ Detalles en la [arquitectura](docs/architecture.md) (en inglés).
 |---|---|
 | [docs/es/rules.md](docs/es/rules.md) | Reglas y restricciones del proyecto, y la comprobación de que no entran en conflicto |
 | [docs/es/roadmap.md](docs/es/roadmap.md) | Fases y tareas, cada una con su definición de terminada |
-| [docs/architecture.md](docs/architecture.md) (en inglés) | Enfoques evaluados, arquitectura, módulos, flujos y diseño |
+| [docs/es/architecture.md](docs/es/architecture.md) | Enfoques evaluados, arquitectura, módulos, flujos y diseño |
 | [docs/design.md](docs/design.md) (en inglés) | Sistema de diseño: filosofía, temas, color, tipografía, foco y componentes |
 | [docs/testing.md](docs/testing.md) (en inglés) | Sitios de prueba y cómo se comprueban los Shields en la TV de referencia |
 | [docs/resources/](docs/resources/README.md) (en inglés) | Documentación específica de cada recurso externo que se usa |
