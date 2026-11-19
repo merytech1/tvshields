@@ -3,7 +3,9 @@
 A lightweight, open-source browser for **Android TV** that blocks ads and trackers
 in the style of Brave's *Shields*, built to be used with the TV remote.
 
-> **Status:** design phase. There is no APK yet. See the [roadmap](docs/roadmap.md).
+> **Status:** v0.1.0 released. Download it from
+> [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). See the
+> [roadmap](docs/roadmap.md) for what comes next.
 
 ## What it does
 
@@ -20,6 +22,15 @@ in the style of Brave's *Shields*, built to be used with the TV remote.
 
 Any TV or set-top box with **Android 7.0 or later**: Android TV, Google TV, Amazon Fire TV and
 Android boxes. It does **not** run on Samsung (Tizen), LG (webOS) or Roku.
+
+## Download and install
+
+The latest version is on [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest):
+a universal APK, plus smaller ones for 32-bit and 64-bit devices; use the universal one if you are
+not sure. Install it with the **Downloader** app (enter the APK URL), from a USB drive with a file
+manager, or with `adb install <file>.apk`. The device must allow installing apps from that source,
+and the first launch needs internet to download the filter lists. Checksums, the certificate and
+more detail are in the [v0.1.0 release notes](docs/releases/v0.1.0.md).
 
 ## Tech stack
 
