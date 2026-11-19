@@ -153,10 +153,12 @@ New-Item -ItemType Directory -Force D:\dev\keys
 & "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -storetype PKCS12 -keystore D:\dev\keys\tvshields-release.p12 -alias tvshields -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=tvshields"
 ```
 
-Then store it in the repository secrets. `gh` asks for the password without echoing it:
+Then store it in the repository secrets. Pass the base64 with `--body`, not through a pipe:
+Windows PowerShell 5.1 adds a byte order mark and a line break to piped text, and the workflow
+then fails with `base64: error: invalid input`. `gh` asks for the password without echoing it:
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\dev\keys\tvshields-release.p12")) | gh secret set RELEASE_KEYSTORE_BASE64 --repo merytech1/tvshields
+gh secret set RELEASE_KEYSTORE_BASE64 --repo merytech1/tvshields --body ([Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\dev\keys\tvshields-release.p12")))
 ```
 
 ```powershell
@@ -166,3 +168,17 @@ gh secret set RELEASE_KEYSTORE_PASSWORD --repo merytech1/tvshields
 **Keep a backup** of `tvshields-release.p12` and its password outside this PC. Android only
 installs an update signed with the same key: if the key is lost, users have to uninstall the app
 to install a new version.
+
+**Release certificate.** Created on 2026-11-19. Every published tvshields APK is signed with it;
+check a downloaded APK with `apksigner verify --print-certs`:
+
+| Field | Value |
+|---|---|
+| Subject | `CN=tvshields` (RSA 4096, valid 10,000 days) |
+| SHA-256 | `a5:06:fa:b3:36:7c:d9:71:bb:55:93:f7:74:27:2c:0e:51:1b:3c:04:f9:7d:7f:c0:17:7c:45:81:60:d9:4e:67` |
+
+First signed build: release run on `develop` at `21864c1`, `app-release.apk` (4.1 MB, APK
+signature scheme v2).
+
+APKs from this key do not install over a build signed with the debug key (the one used on the TV
+so far): uninstall the debug build once before installing a release.
