@@ -1,0 +1,45 @@
+# Shared setup for the workflows that build the APK: JDK, Rust with the Android targets, cargo-ndk,
+# the NDK and Gradle, then the engine for both ABIs (engine/build-android.sh).
+name: Android build setup
+description: Installs the toolchain and builds the engine into app/src/main/jniLibs.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: microsoft
+        java-version: 21
+
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android, armv7-linux-androideabi
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: engine
+        key: android
+
+    - name: Install cargo-ndk
+      shell: bash
+      run: cargo install cargo-ndk --version 4.1.2 --locked
+
+    - name: Install the NDK
+      shell: bash
+      env:
+        # Same NDK as the local toolchain (docs/resources/toolchain.md).
+        NDK_VERSION: 30.0.16248370
+      run: |
+        ndk="$ANDROID_HOME/ndk/$NDK_VERSION"
+        if [ ! -d "$ndk" ]; then
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          # cmdline-tools 23+ use `/` in package paths; older ones use `;`.
+          yes | "$sdkmanager" "ndk/$NDK_VERSION" || yes | "$sdkmanager" --install "ndk;$NDK_VERSION"
+        fi
+        echo "ANDROID_NDK_HOME=$ndk" >> "$GITHUB_ENV"
+
+    - name: Build the engine
+      shell: bash
+      run: engine/build-android.sh
+
+    - uses: gradle/actions/setup-gradle@v4

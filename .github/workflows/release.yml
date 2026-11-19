@@ -1,0 +1,53 @@
+# Builds the release APK signed with the release key (roadmap 9.2). The key lives only in GitHub
+# secrets: RELEASE_KEYSTORE_BASE64 (the PKCS12 file in base64) and RELEASE_KEYSTORE_PASSWORD.
+# Runs on version tags and by hand; publishing to GitHub Releases is roadmap 9.4.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Signed release APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/android-build
+
+      - name: Restore the release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::The RELEASE_KEYSTORE_BASE64 secret is not set (docs/resources/toolchain.md)."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "TVSHIELDS_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+
+      - name: Build the signed APK
+        env:
+          TVSHIELDS_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
+
+      - name: Verify the signature
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+          "$apksigner" verify --print-certs "$apk"
+          sha256sum "$apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/app-release.apk

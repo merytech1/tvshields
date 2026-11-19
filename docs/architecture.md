@@ -131,7 +131,7 @@ tvshields/
 │           ├── search/
 │           └── settings/
 ├── settings.gradle.kts
-└── .github/workflows/         # CI: Rust + APK build, tests, size check
+└── .github/                  # workflows: CI (build, tests, size check), signed release, resources; actions: shared build setup
 ```
 
 ## 5. Shields: flows
