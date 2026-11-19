@@ -249,10 +249,13 @@ Limits:
 - The table only counts ads and tracking from the 8.2 classification. The "Blocked" column counts
   everything in the log.
 
-## 5. Performance (roadmap 8.4, in progress)
+## 5. Performance (roadmap 8.4)
 
-Measured on the reference TV on 2026-11-18 with a **release** build (R8, `opt-level = 3` engine),
-signed locally with the debug key so it installs over the debug build. Universal APK: 7.4 MB.
+Measured on the reference TV with a **release** build (R8, `opt-level = 3` engine), signed
+locally with the debug key so it installs over the debug build. Universal APK: 7.4 MB. Launch was
+measured on 2026-11-18; pages and memory on 2026-11-19, on a stable network (0 % packet loss in
+20 pings to the TV, 154 ms average). A first page run on 2026-11-18, on unstable Wi-Fi (15–40 %
+loss), is replaced by these results.
 
 ### How it was measured
 
@@ -264,18 +267,17 @@ signed locally with the debug key so it installs over the debug build. Universal
   - Turn on the perf log: `adb shell setprop log.tag.tvshields.perf DEBUG`, then restart the app
     ([architecture §5.5](architecture.md#55-cost-on-the-reference-tv-t7)).
   - Open the site from the address bar, then reload it 5 times with the reload button, 20 s
-    apart. `ShieldsPerf` logs each load: load time and engine work.
+    apart. `ShieldsPerf` logs each load: load time (page started to page finished) and engine
+    work.
   - Turn Shields off for the site in the panel and repeat. With Shields off the engine is not
-    asked (`requests n=0`), which confirms the state of every load.
-  - Memory: total PSS of the app and of the WebView renderer (`sandboxed_process`) after the
-    loads.
-- **Network:** the TV's Wi-Fi was unstable during these runs (15–40 % packet loss to the TV,
-  pings up to 3 s). Page load times depend on the network more than on Shields, so medians are
-  used and single loads are not compared.
+    asked (`requests n=0`), which confirms the state of every load. Shields are turned back on
+    and checked at the end.
+  - Memory: total PSS of the app and of the WebView renderer (`sandboxed_process`) after each set
+    of 5 loads.
 
-### Results so far
+### Launch
 
-**Launch** (10 cold starts; the first one after installing is left out of the medians):
+10 cold starts; the first one after installing is left out of the medians.
 
 | Measure | Median | Range |
 |---|---|---|
@@ -283,31 +285,66 @@ signed locally with the debug key so it installs over the debug build. Universal
 | Engine load from the cache | 387 ms | 365–423 ms (first after install: 638 ms) |
 | App memory on the start page (PSS) | 92 MB | 90–94 MB |
 
-**Pages** (median load time of 5 reloads; engine work per load):
+### Page load time
 
-| Site | Load, Shields on / off | Engine requests per load | Engine time per load (max one request) | UI thread |
+Median of 5 reloads, range in parentheses.
+
+| Site | Shields on | Shields off | Change with Shields |
+|---|---|---|---|
+| Wikipedia | 780 ms (696–832) | 794 ms (729–833) | −2 % |
+| El País | 4,838 ms (4,628–7,204) | 6,104 ms (5,532–7,194) | −21 % |
+| The Verge | 1,996 ms (1,481–2,340) | 1,762 ms (1,705–2,004) | +13 % |
+| El Tiempo | 4,700 ms (4,535–5,017) | 13,069 ms (12,167–16,760) | −64 % |
+
+### Engine work per load (Shields on)
+
+| Site | Requests checked | Total time, median (range) | Slowest single request | UI thread |
 |---|---|---|---|---|
-| Wikipedia | 848 ms / 900 ms (4 loads off) | 22–24 | 11–27 ms (max 8.5 ms) | 0 ms |
-| El País | 5,419 ms / not measured | 30 | 12–15 ms (max 2.5 ms) | 0 ms |
+| Wikipedia | 23 | 13 ms (10–22) | 5.6 ms | 0 ms |
+| El País | 29 | 24 ms (12–55) | 19.2 ms | 0 ms |
+| The Verge | 56–158 | 50 ms (32–93) | 7.8 ms | 0 ms |
+| El Tiempo | 63–73 | 43 ms (42–58) | 5.7 ms | 0 ms |
 
-**Memory with the page open** (PSS, app + WebView renderer):
+Cosmetic filtering adds under 1 ms per load on the UI thread and up to 13 ms of generic batches
+off it. On The Verge each load also logs two extra page-finished events with no page start; their
+requests are counted in the row above.
+
+### Memory with the page open
+
+PSS after 5 loads, app + WebView renderer (1 MB = 1,024 kB).
 
 | Site | Shields on | Shields off |
 |---|---|---|
-| Wikipedia | 129 MB + 107 MB | 107 MB + 106 MB |
-| El País | 137 MB + 151 MB | not valid (the off loads were not recorded) |
+| Wikipedia | 124 + 105 = 229 MB | 125 + 92 = 217 MB |
+| El País | 129 + 110 = 239 MB | 119 + 151 = 270 MB |
+| The Verge | 136 + 198 = 334 MB | 148 + 301 = 449 MB |
+| El Tiempo | 166 + 228 = 394 MB | 151 + 238 = 389 MB |
 
-### Findings so far
+### Findings
 
-- The app shows its first frame in about 1.2 s and loads the engine from the cache in about
+- **The engine's cost is small and never on the UI thread.** It spends 10–93 ms per page in
+  total, on WebView's network threads, in parallel with the downloads. The slowest single check
+  was 19 ms.
+- **Shields make ad-heavy pages load faster.** El Tiempo loads in 4.7 s instead of 13.1 s and El
+  País in 4.8 s instead of 6.1 s: blocked ads and trackers are never downloaded or run.
+- **Wikipedia** (no ads) loads in the same time with and without Shields.
+- **The Verge** is the only site where loads with Shields are slower in the median (+234 ms). The
+  ranges overlap and the number of checked requests varies from 56 to 158 between loads (its ads
+  change on every load), so 5 loads do not show whether the difference comes from Shields. The
+  engine work, 32–93 ms off the UI thread, is smaller than the difference.
+- **Memory:** with Shields the WebView renderer uses less memory on the pages with many ads
+  (−103 MB on The Verge, −41 MB on El País). The app itself uses 124–166 MB with a page open.
+  The largest total, 394 MB on El Tiempo, is about a fifth of the TV's 1.8 GB.
+- **Launch:** the first frame shows in about 1.2 s; the engine loads from the cache in about
   0.4 s, in the background.
-- On Wikipedia, Shields add no measurable load time: the engine spends 11–27 ms per page in total,
-  on WebView's network threads, never on the UI thread.
-- On El País the engine checks 30 requests in about 13 ms per load. The 5.4 s load time is the
-  site and the network.
 
-### Still to do
+**Verdict: meets T7.** Blocking is not noticeable while browsing: it never runs on the UI thread,
+it costs at most tens of milliseconds per page, and on pages with ads it makes them load faster
+and use less memory.
 
-- El País with Shields off, The Verge and El Tiempo (on and off), on a stable network.
-- Memory with more samples: single PSS readings vary with garbage collection.
-- Decide whether the results meet T7 and mark roadmap 8.4 done.
+### Limits
+
+- One TV and 5 loads per state. The sites' ads change between loads, so single loads are not
+  compared.
+- Memory is one PSS reading per state; it varies with garbage collection.
+- Load time ends when WebView reports the page finished, not when the page looks complete.
