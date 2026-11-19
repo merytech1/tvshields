@@ -527,8 +527,8 @@ parentheses):
 
 Request checks run on WebView's network threads, in parallel with the downloads. App memory (PSS)
 on theverge.com: 230 MB with Shields, 218 MB without. Page load times vary by more than a second
-between identical runs, so single runs do not show a Shields cost; phase 8.4 measures them with
-more samples on a release build.
+between identical runs, so single runs do not show a Shields cost; the release build is measured
+with more samples in [testing §5](testing.md#5-performance-roadmap-84) (roadmap 8.4).
 
 **Changes that came out of the measurements:**
 - `ProceduralSelector.looksProcedural` checks each `:` once instead of searching for every
