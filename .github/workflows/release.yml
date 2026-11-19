@@ -47,6 +47,9 @@ jobs:
           "$apksigner" verify --print-certs "$apk"
           sha256sum "$apk"
 
+      - name: Check the APK size
+        run: .github/scripts/apk-size.sh app/build/outputs/apk/release/app-release.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: release-apk

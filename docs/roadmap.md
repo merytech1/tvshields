@@ -94,6 +94,6 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 |---|---|---|---|
 | 9.1 | CI on GitHub Actions: Rust + APK + tests | Green on every PR ([toolchain: CI](resources/toolchain.md#ci-github-actions)) | ✅ |
 | 9.2 | Release signing (key outside the repo, in GitHub secrets) | Signed APK reproducible from CI ([toolchain: release signing](resources/toolchain.md#release-signing)) | ✅ |
-| 9.3 | Size check in CI (fails if > 100 MB; warns if > 25 MB) | Verified (T1) | ⬜ |
+| 9.3 | Size check in CI (fails if > 100 MB; warns if > 25 MB) | Verified (T1) ([toolchain: CI](resources/toolchain.md#ci-github-actions)) | ✅ |
 | 9.4 | v0.1.0 on GitHub Releases (universal + per ABI) | Installable on the reference TV from the published file | ⬜ |
 | 9.5 | Spanish documentation of the repository (rules W5) | Spanish version of the README and docs published and linked from the English README | ⬜ |

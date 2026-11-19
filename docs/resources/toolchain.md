@@ -115,7 +115,7 @@ the Gradle wrapper) on `ubuntu-latest`:
 | Job | Steps |
 |---|---|
 | Rust engine tests | `cargo test --locked` in `engine/` |
-| APK and Kotlin tests | `engine/build-android.sh`, then `./gradlew :app:testDebugUnitTest`, then the debug, release (unsigned) and instrumented-test APKs. The debug and release APKs are kept as a build artifact for 14 days. |
+| APK and Kotlin tests | `engine/build-android.sh`, then `./gradlew :app:testDebugUnitTest`, then the debug, release (unsigned) and instrumented-test APKs, then the size check of the release APK. The debug and release APKs are kept as a build artifact for 14 days. |
 
 The instrumented tests (`app/src/androidTest`) are built but not run: the engine only exists for
 ARM, and they run on the TV with `connectedDebugAndroidTest`. `.github/workflows/resources.yml`
@@ -124,12 +124,22 @@ checks the resource generator separately, when `tools/resources/` or `engine/` c
 The toolchain setup and the engine build are shared by both APK workflows through
 `.github/actions/android-build`.
 
+**APK size (rules T1, roadmap 9.3).** `.github/scripts/apk-size.sh` checks the release APK in both
+workflows: the job fails above 100 MB and shows a warning above the 25 MB target (1 MB =
+1,048,576 bytes). Each run lists the sizes in its job summary. To try it locally:
+
+```bash
+.github/scripts/apk-size.sh app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+`APK_MAX_MB` and `APK_WARN_MB` override the two limits, to test the warning and the failure.
+
 ## Release signing
 
 `.github/workflows/release.yml` builds `app-release.apk` signed with the release key (roadmap
 9.2). It runs when a `v*` tag is pushed, or by hand from the Actions tab ("release", "Run
 workflow"). It checks the signature with `apksigner`, prints the certificate and the APK's SHA-256,
-and keeps the APK as the `release-apk` artifact.
+checks the APK size, and keeps the APK as the `release-apk` artifact.
 
 The key never enters the repository. It lives in two GitHub secrets:
 
@@ -177,8 +187,8 @@ check a downloaded APK with `apksigner verify --print-certs`:
 | Subject | `CN=tvshields` (RSA 4096, valid 10,000 days) |
 | SHA-256 | `a5:06:fa:b3:36:7c:d9:71:bb:55:93:f7:74:27:2c:0e:51:1b:3c:04:f9:7d:7f:c0:17:7c:45:81:60:d9:4e:67` |
 
-First signed build: release run on `develop` at `21864c1`, `app-release.apk` (4.1 MB, APK
-signature scheme v2).
+First signed build: release run on `develop` at `21864c1`, `app-release.apk` (APK signature
+scheme v2).
 
 APKs from this key do not install over a build signed with the debug key (the one used on the TV
 so far): uninstall the debug build once before installing a release.
