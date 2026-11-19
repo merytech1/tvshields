@@ -248,3 +248,66 @@ Limits:
   site matched the recording, so none were seen.
 - The table only counts ads and tracking from the 8.2 classification. The "Blocked" column counts
   everything in the log.
+
+## 5. Performance (roadmap 8.4, in progress)
+
+Measured on the reference TV on 2026-11-18 with a **release** build (R8, `opt-level = 3` engine),
+signed locally with the debug key so it installs over the debug build. Universal APK: 7.4 MB.
+
+### How it was measured
+
+- **Launch:** 10 cold starts. Each one: `am force-stop`, then `am start -W`, which gives
+  `TotalTime` (until the first frame). The engine load comes from the app's own log line
+  (`Engine cache in … ms`). Memory is `dumpsys meminfo` (total PSS) 10 s after launch, on the
+  start page.
+- **Pages:**
+  - Turn on the perf log: `adb shell setprop log.tag.tvshields.perf DEBUG`, then restart the app
+    ([architecture §5.5](architecture.md#55-cost-on-the-reference-tv-t7)).
+  - Open the site from the address bar, then reload it 5 times with the reload button, 20 s
+    apart. `ShieldsPerf` logs each load: load time and engine work.
+  - Turn Shields off for the site in the panel and repeat. With Shields off the engine is not
+    asked (`requests n=0`), which confirms the state of every load.
+  - Memory: total PSS of the app and of the WebView renderer (`sandboxed_process`) after the
+    loads.
+- **Network:** the TV's Wi-Fi was unstable during these runs (15–40 % packet loss to the TV,
+  pings up to 3 s). Page load times depend on the network more than on Shields, so medians are
+  used and single loads are not compared.
+
+### Results so far
+
+**Launch** (10 cold starts; the first one after installing is left out of the medians):
+
+| Measure | Median | Range |
+|---|---|---|
+| Time to first frame (`TotalTime`) | 1,210 ms | 1,160–1,572 ms (first after install: 2,857 ms) |
+| Engine load from the cache | 387 ms | 365–423 ms (first after install: 638 ms) |
+| App memory on the start page (PSS) | 92 MB | 90–94 MB |
+
+**Pages** (median load time of 5 reloads; engine work per load):
+
+| Site | Load, Shields on / off | Engine requests per load | Engine time per load (max one request) | UI thread |
+|---|---|---|---|---|
+| Wikipedia | 848 ms / 900 ms (4 loads off) | 22–24 | 11–27 ms (max 8.5 ms) | 0 ms |
+| El País | 5,419 ms / not measured | 30 | 12–15 ms (max 2.5 ms) | 0 ms |
+
+**Memory with the page open** (PSS, app + WebView renderer):
+
+| Site | Shields on | Shields off |
+|---|---|---|
+| Wikipedia | 129 MB + 107 MB | 107 MB + 106 MB |
+| El País | 137 MB + 151 MB | not valid (the off loads were not recorded) |
+
+### Findings so far
+
+- The app shows its first frame in about 1.2 s and loads the engine from the cache in about
+  0.4 s, in the background.
+- On Wikipedia, Shields add no measurable load time: the engine spends 11–27 ms per page in total,
+  on WebView's network threads, never on the UI thread.
+- On El País the engine checks 30 requests in about 13 ms per load. The 5.4 s load time is the
+  site and the network.
+
+### Still to do
+
+- El País with Shields off, The Verge and El Tiempo (on and off), on a stable network.
+- Memory with more samples: single PSS readings vary with garbage collection.
+- Decide whether the results meet T7 and mark roadmap 8.4 done.
