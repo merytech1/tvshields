@@ -92,7 +92,7 @@ Legend: ⬜ pending · 🔄 in progress · ✅ done
 
 | # | Task | Done when | Status |
 |---|---|---|---|
-| 9.1 | CI on GitHub Actions: Rust + APK + tests | Green on every PR | ⬜ |
+| 9.1 | CI on GitHub Actions: Rust + APK + tests | Green on every PR ([toolchain: CI](resources/toolchain.md#ci-github-actions)) | ✅ |
 | 9.2 | Release signing (key outside the repo, in GitHub secrets) | Signed APK reproducible from CI | ⬜ |
 | 9.3 | Size check in CI (fails if > 100 MB; warns if > 25 MB) | Verified (T1) | ⬜ |
 | 9.4 | v0.1.0 on GitHub Releases (universal + per ABI) | Installable on the reference TV from the published file | ⬜ |

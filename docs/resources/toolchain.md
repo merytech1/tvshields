@@ -105,3 +105,18 @@ ANDROID_SERIAL=192.168.1.13:5555 ./gradlew :app:connectedDebugAndroidTest
 
 On the reference TV, `adb exec-out screencap -p` prints vendor log lines before the PNG data;
 strip everything before the `\x89PNG` header to get a valid image.
+
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `develop` and `main`
+(roadmap 9.1). It uses the same versions as the table above (NDK, `cargo-ndk`, JDK 21, stable Rust,
+the Gradle wrapper) on `ubuntu-latest`:
+
+| Job | Steps |
+|---|---|
+| Rust engine tests | `cargo test --locked` in `engine/` |
+| APK and Kotlin tests | `engine/build-android.sh`, then `./gradlew :app:testDebugUnitTest`, then the debug, release (unsigned) and instrumented-test APKs. The debug and release APKs are kept as a build artifact for 14 days. |
+
+The instrumented tests (`app/src/androidTest`) are built but not run: the engine only exists for
+ARM, and they run on the TV with `connectedDebugAndroidTest`. `.github/workflows/resources.yml`
+checks the resource generator separately, when `tools/resources/` or `engine/` change.
