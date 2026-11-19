@@ -21,10 +21,24 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 
-        // rules.md T3: only the ABIs the engine is built for.
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+    // rules.md T3: only the ABIs the engine is built for. One APK per ABI plus a universal one
+    // (roadmap 9.4); AGP does not allow `ndk.abiFilters` together with ABI splits.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = true
+        }
+    }
+
+    // Without ndk.abiFilters the universal APK would also carry the x86 libraries of AndroidX, and
+    // an x86 device would install an app that has no engine.
+    packaging {
+        jniLibs {
+            excludes += listOf("lib/x86/**", "lib/x86_64/**")
         }
     }
 

@@ -106,6 +106,7 @@ tvshields/
 │   ├── rules.md
 │   ├── architecture.md
 │   ├── roadmap.md
+│   ├── releases/              # release notes, one file per version (vX.Y.Z.md)
 │   └── resources/             # one page per external resource
 ├── engine/                    # Rust crate: tvshields-engine
 │   ├── Cargo.toml
