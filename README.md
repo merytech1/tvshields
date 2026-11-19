@@ -27,10 +27,17 @@ Android boxes. It does **not** run on Samsung (Tizen), LG (webOS) or Roku.
 
 The latest version is on [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest):
 a universal APK, plus smaller ones for 32-bit and 64-bit devices; use the universal one if you are
-not sure. Install it with the **Downloader** app (enter the APK URL), from a USB drive with a file
-manager, or with `adb install <file>.apk`. The device must allow installing apps from that source,
-and the first launch needs internet to download the filter lists. Checksums, the certificate and
-more detail are in the [v0.1.0 release notes](docs/releases/v0.1.0.md).
+not sure. Install it with the **Downloader** app using this URL, which always downloads the latest
+version:
+
+```
+https://github.com/merytech1/tvshields/releases/latest/download/tvshields.apk
+```
+
+From a USB drive with a file manager, install the APK you downloaded; or use
+`adb install <file>.apk`. The device must allow installing apps from that source, and the first
+launch needs internet to download the filter lists. Checksums, the certificate and more detail are
+in the [v0.1.0 release notes](docs/releases/v0.1.0.md).
 
 ## Tech stack
 
