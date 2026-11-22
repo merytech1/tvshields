@@ -4,10 +4,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.view.KeyEvent
+import android.view.View
 import android.view.ViewConfiguration
+import android.view.Window
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -36,13 +40,12 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import io.github.merytech1.tvshields.browser.cursor.CursorController
 import io.github.merytech1.tvshields.browser.cursor.CursorOverlay
-import io.github.merytech1.tvshields.browser.cursor.CursorSize
 import io.github.merytech1.tvshields.browser.cursor.Direction
 import io.github.merytech1.tvshields.browser.cursor.Scroll
 import io.github.merytech1.tvshields.browser.cursor.WebViewInput
@@ -60,11 +63,11 @@ fun BrowserScreen(
     cosmetics: CosmeticFilter,
     engineReady: Boolean,
     settings: SettingsViewModel,
+    window: Window,
 ) {
     val state by viewModel.state.collectAsState()
     val colors = LocalTvShieldsColors.current
     val context = LocalContext.current
-    val density = LocalDensity.current
     val addressFocus = remember { FocusRequester() }
     val cursor = remember { CursorController() }
     val okPress = remember { OkPress() }
@@ -78,8 +81,20 @@ fun BrowserScreen(
     val shieldsStatus = ShieldsStatus.of(state.shieldsOffForSite, engineReady)
 
     val injector = remember(context) { CosmeticInjector(context, cosmetics) }
+    val fullscreenView = remember { FullscreenView(context) }
     val webView = remember {
-        createWebView(context, viewModel, shields, injector, colors.background.toArgb())
+        createWebView(context, viewModel, shields, injector, fullscreenView, colors.background.toArgb())
+    }
+
+    fun inputView(): View = if (fullscreenView.isShowing) fullscreenView else webView
+
+    fun updateCursorBounds(size: IntSize) {
+        cursor.setViewport(size.width, size.height)
+        cursorPosition = Offset(cursor.x, cursor.y)
+    }
+
+    fun exitFullscreen() {
+        if (fullscreenView.dismiss()) webView.requestFocus()
     }
 
     fun leaveToAddressBar() {
@@ -94,13 +109,16 @@ fun BrowserScreen(
         webView.goBack()
     }
 
-    // Pushing up at the top of the page goes back to the address bar.
-    fun scrollOrLeave(scroll: Scroll) {
+    fun moveCursor(scroll: Scroll) {
+        val target = inputView()
+        cursorPosition = Offset(cursor.x, cursor.y)
+        WebViewInput.hover(target, cursor.x, cursor.y)
         if (scroll.isZero) return
-        if (scroll.dy < 0 && !webView.canScrollVertically(-1)) leaveToAddressBar()
-        else WebViewInput.scroll(webView, cursor.x, cursor.y, scroll.dx, scroll.dy)
+        if (target == webView && scroll.dy < 0 && !webView.canScrollVertically(-1)) leaveToAddressBar()
+        else WebViewInput.scroll(target, cursor.x, cursor.y, scroll.dx, scroll.dy)
     }
 
+    BackHandler(enabled = fullscreenView.isShowing, onBack = ::exitFullscreen)
     DisposableEffect(webView) {
         webView.setOnFocusChangeListener { _, focused ->
             webViewFocused = focused
@@ -111,28 +129,42 @@ fun BrowserScreen(
                     .hideSoftInputFromWindow(webView.windowToken, 0)
             }
         }
-        webView.keyHandler = { event ->
-            handleKey(event.keyCode, event, cursor, webView, okPress,
+        val handleRemoteKey: (KeyEvent) -> Boolean = { event ->
+            handleKey(event.keyCode, event, cursor, okPress,
                 onMove = { scroll ->
-                    // Show the press nudge right away; the frame loop handles held keys.
-                    cursorPosition = Offset(cursor.x, cursor.y)
-                    WebViewInput.hover(webView, cursor.x, cursor.y)
-                    scrollOrLeave(scroll)
+                    moveCursor(scroll)
                     moveRequests++
                 },
-                onClick = { WebViewInput.tap(webView, cursor.x, cursor.y) },
-                onLeave = ::leaveToAddressBar,
-                onBack = ::goBack,
+                onClick = { WebViewInput.tap(inputView(), cursor.x, cursor.y) },
+                onLeave = {
+                    if (fullscreenView.isShowing) exitFullscreen() else leaveToAddressBar()
+                },
+                onBack = {
+                    when {
+                        fullscreenView.isShowing -> exitFullscreen()
+                        webView.canGoBack() -> goBack()
+                        else -> leaveToAddressBar()
+                    }
+                },
             )
         }
+        webView.keyHandler = handleRemoteKey
+        fullscreenView.keyHandler = handleRemoteKey
         onDispose {
             webView.keyHandler = null
+            fullscreenView.keyHandler = null
+            fullscreenView.dismiss()
             injector.dispose(webView)
             webView.destroy()
         }
     }
     LaunchedEffect(Unit) {
         addressFocus.requestFocus()
+    }
+    LaunchedEffect(fullscreenView.isShowing) {
+        cursor.releaseAll()
+        val target = inputView()
+        if (target.isLaidOut) updateCursorBounds(IntSize(target.width, target.height))
     }
     // Light or dark mode changed in Settings: blank and loading pages follow it.
     LaunchedEffect(colors.background) {
@@ -161,9 +193,7 @@ fun BrowserScreen(
             val now = withFrameNanos { it }
             val scroll = cursor.step((now - last) / 1_000_000f)
             last = now
-            cursorPosition = Offset(cursor.x, cursor.y)
-            WebViewInput.hover(webView, cursor.x, cursor.y)
-            scrollOrLeave(scroll)
+            moveCursor(scroll)
         }
     }
 
@@ -215,9 +245,7 @@ fun BrowserScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .onSizeChanged {
-                        val margin = with(density) { CursorSize.toPx() }
-                        cursor.setBounds(it.width - margin, it.height - margin)
-                        cursorPosition = Offset(cursor.x, cursor.y)
+                        if (!fullscreenView.isShowing) updateCursorBounds(it)
                     },
             ) {
                 AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
@@ -262,6 +290,16 @@ fun BrowserScreen(
                 modifier = Modifier.fillMaxSize().zIndex(2f),
             )
         }
+        if (fullscreenView.isShowing) {
+            FullscreenSystemBars(window)
+            Box(Modifier.fillMaxSize().zIndex(3f).background(Color.Black)) {
+                AndroidView(
+                    factory = { fullscreenView },
+                    modifier = Modifier.fillMaxSize().onSizeChanged(::updateCursorBounds),
+                )
+                CursorOverlay(position = cursorPosition, modifier = Modifier.fillMaxSize())
+            }
+        }
     }
 }
 
@@ -289,7 +327,6 @@ private fun handleKey(
     keyCode: Int,
     event: KeyEvent,
     cursor: CursorController,
-    webView: WebView,
     okPress: OkPress,
     onMove: (Scroll) -> Unit,
     onClick: () -> Unit,
@@ -318,9 +355,7 @@ private fun handleKey(
             true
         }
         KeyEvent.KEYCODE_BACK -> {
-            if (event.action == KeyEvent.ACTION_UP) {
-                if (webView.canGoBack()) onBack() else onLeave()
-            }
+            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) onBack()
             true
         }
         KeyEvent.KEYCODE_MENU -> {
@@ -337,6 +372,7 @@ private fun createWebView(
     viewModel: BrowserViewModel,
     shields: ShieldsManager,
     cosmetics: CosmeticInjector,
+    fullscreenView: FullscreenView,
     backgroundColor: Int,
 ): TvWebView = TvWebView(context).apply {
     // Debug builds only: lets chrome://inspect (or the DevTools protocol over adb) check what
@@ -359,5 +395,13 @@ private fun createWebView(
     cosmetics.attach(this)
     webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView, newProgress: Int) = viewModel.onProgress(newProgress)
+
+        override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+            fullscreenView.show(view, callback)
+        }
+
+        override fun onHideCustomView() {
+            if (fullscreenView.hide()) this@apply.requestFocus()
+        }
     }
 }

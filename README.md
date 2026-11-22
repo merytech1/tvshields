@@ -5,7 +5,7 @@ in the style of Brave's *Shields*, built to be used with the TV remote.
 
 *[Leer en español](README.es.md)*
 
-> **Status:** v0.1.0 released. Download it from
+> Download the latest version from
 > [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). See the
 > [roadmap](docs/roadmap.md) for what comes next.
 
@@ -39,7 +39,7 @@ https://github.com/merytech1/tvshields/releases/latest/download/tvshields.apk
 From a USB drive with a file manager, install the APK you downloaded; or use
 `adb install <file>.apk`. The device must allow installing apps from that source, and the first
 launch needs internet to download the filter lists. Checksums, the certificate and more detail are
-in the [v0.1.0 release notes](docs/releases/v0.1.0.md).
+in the [v0.1.1 release notes](docs/releases/v0.1.1.md).
 
 ## Tech stack
 
