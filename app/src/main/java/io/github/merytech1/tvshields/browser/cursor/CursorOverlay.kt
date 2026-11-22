@@ -14,8 +14,9 @@ import androidx.compose.ui.unit.dp
 
 private val outline = Color(0xFF0F1217)
 
-/** Pointer height. The cursor stays this far from the right and bottom edges so it is always visible. */
-val CursorSize = 24.dp
+private val arrowHeight = 24.dp
+private val arrowWidth = 15.6.dp
+private val outlineHalfWidth = 2.dp
 
 /** Arrow pointer, 20 units tall, tip at (0, 0). */
 private val arrow = Path().apply {
@@ -33,10 +34,17 @@ private val arrow = Path().apply {
 @Composable
 fun CursorOverlay(position: Offset, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        val unit = 1.2f * density // 20 units = 24 dp
+        val unit = arrowHeight.toPx() / 20f
+        // Volteamos la flecha hacia dentro sin desplazar el punto donde pulsa.
+        val scaleX = if (position.x + (arrowWidth + outlineHalfWidth).toPx() > size.width) -unit else unit
+        val scaleY = if (position.y + (arrowHeight + outlineHalfWidth).toPx() > size.height) -unit else unit
         translate(position.x, position.y) {
-            scale(unit, unit, pivot = Offset.Zero) {
-                drawPath(arrow, outline, style = Stroke(width = 4f * density / unit, join = StrokeJoin.Round))
+            scale(scaleX, scaleY, pivot = Offset.Zero) {
+                drawPath(
+                    arrow,
+                    outline,
+                    style = Stroke(width = outlineHalfWidth.toPx() * 2f / unit, join = StrokeJoin.Round),
+                )
                 drawPath(arrow, Color.White)
             }
         }

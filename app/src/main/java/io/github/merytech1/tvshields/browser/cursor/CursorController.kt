@@ -33,8 +33,8 @@ class CursorController(
         private set
     var y = 0f
         private set
-    private var width = 0f
-    private var height = 0f
+    private var maxX = 0f
+    private var maxY = 0f
     private var centered = false
 
     private val held = linkedSetOf<Direction>()
@@ -42,17 +42,17 @@ class CursorController(
 
     val isMoving get() = held.isNotEmpty()
 
-    /** Sets the area the cursor lives in. The first call centers the cursor. */
-    fun setBounds(width: Float, height: Float) {
-        this.width = width
-        this.height = height
-        if (!centered && width > 0f && height > 0f) {
-            x = width / 2
-            y = height / 2
+    /** La punta del cursor puede alcanzar el último píxel de la vista. */
+    fun setViewport(width: Int, height: Int) {
+        maxX = (width - 1).coerceAtLeast(0).toFloat()
+        maxY = (height - 1).coerceAtLeast(0).toFloat()
+        if (!centered && width > 0 && height > 0) {
+            x = width / 2f
+            y = height / 2f
             centered = true
         }
-        x = x.coerceIn(0f, width)
-        y = y.coerceIn(0f, height)
+        x = x.coerceIn(0f, maxX)
+        y = y.coerceIn(0f, maxY)
     }
 
     /** Starts moving; returns the scroll for a press against an edge. */
@@ -61,8 +61,8 @@ class CursorController(
         held += direction
         val wantedX = x + direction.dx * nudge
         val wantedY = y + direction.dy * nudge
-        x = wantedX.coerceIn(0f, width)
-        y = wantedY.coerceIn(0f, height)
+        x = wantedX.coerceIn(0f, maxX)
+        y = wantedY.coerceIn(0f, maxY)
         return Scroll(
             dx = if (wantedX != x) direction.dx * edgeScroll else 0f,
             dy = if (wantedY != y) direction.dy * edgeScroll else 0f,
@@ -86,8 +86,8 @@ class CursorController(
 
         val wantedX = x + dirX * distance
         val wantedY = y + dirY * distance
-        x = wantedX.coerceIn(0f, width)
-        y = wantedY.coerceIn(0f, height)
+        x = wantedX.coerceIn(0f, maxX)
+        y = wantedY.coerceIn(0f, maxY)
         return Scroll(wantedX - x, wantedY - y)
     }
 }

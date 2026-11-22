@@ -43,7 +43,14 @@ class MainActivity : ComponentActivity() {
                         factory = SettingsViewModel.factory(container.settings, container.engineLoader::refresh),
                     )
                     val engine by container.engineLoader.engine.collectAsState()
-                    BrowserScreen(browser, container.shields, container.cosmetics, engineReady = engine != null, settings)
+                    BrowserScreen(
+                        browser,
+                        container.shields,
+                        container.cosmetics,
+                        engineReady = engine != null,
+                        settings = settings,
+                        window = window,
+                    )
                 } else {
                     FirstLaunchScreen(status, onRetry = setup::retry, onContinue = setup::continueUnprotected)
                 }

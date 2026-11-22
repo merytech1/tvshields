@@ -5,7 +5,7 @@ al estilo de los *Shields* de Brave, pensado para usarse con el mando de la TV.
 
 *[Read in English](README.md)*
 
-> **Estado:** v0.1.0 publicada. Descárgala desde
+> Descarga la última versión desde
 > [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). Consulta el
 > [roadmap](docs/es/roadmap.md) para ver lo que viene después.
 
@@ -39,7 +39,7 @@ https://github.com/merytech1/tvshields/releases/latest/download/tvshields.apk
 Desde una memoria USB con un explorador de archivos, instala el APK que hayas descargado; o usa
 `adb install <archivo>.apk`. El dispositivo debe permitir instalar apps de esa fuente, y el primer
 arranque necesita internet para descargar las listas de filtros. Las sumas de comprobación, el
-certificado y más detalle están en las [notas de la v0.1.0](docs/releases/v0.1.0.md) (en inglés).
+certificado y más detalle están en las [notas de la v0.1.1](docs/releases/v0.1.1.md) (en inglés).
 
 ## Tecnologías
 
