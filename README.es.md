@@ -7,7 +7,7 @@ al estilo de los *Shields* de Brave, pensado para usarse con el mando de la TV.
 
 > Descarga la última versión desde
 > [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). Consulta el
-> [roadmap](docs/es/roadmap.md) para ver lo que viene después.
+> [plan de la próxima versión](#próxima-versión).
 
 ## Qué hace
 
@@ -40,6 +40,24 @@ Desde una memoria USB con un explorador de archivos, instala el APK que hayas de
 `adb install <archivo>.apk`. El dispositivo debe permitir instalar apps de esa fuente, y el primer
 arranque necesita internet para descargar las listas de filtros. Las sumas de comprobación, el
 certificado y más detalle están en las [notas de la v0.1.1](docs/releases/v0.1.1.md) (en inglés).
+
+## Próxima versión
+
+Estas fases continúan la numeración del [roadmap del proyecto](docs/es/roadmap.md).
+
+| Fase | Tarea | Terminada cuando |
+|---|---|---|
+| 10 · Descargas y actualizaciones desde el TV | **10.1** Descargar archivos desde páginas web y mostrar el progreso. | Un archivo descargado con el mando aparece en la lista de descargas y se puede abrir desde el TV. |
+| 10 · Descargas y actualizaciones desde el TV | **10.2** Añadir en Ajustes una consulta manual de actualizaciones en GitHub Releases. | Ajustes muestra la versión instalada y ofrece la APK oficial firmada si hay una versión más reciente. |
+| 10 · Descargas y actualizaciones desde el TV | **10.3** Descargar la actualización y abrir el instalador de Android. | El usuario confirma la actualización en el TV y tvshields abre con la nueva versión y los ajustes anteriores. |
+| 11 · Pestañas y ventanas | **11.1** Abrir, cambiar y cerrar pestañas con el mando. | Cada pestaña conserva su página y su estado de navegación al cambiar de pestaña. |
+| 11 · Pestañas y ventanas | **11.2** Gestionar enlaces que solicitan una ventana nueva. | El enlace abre una vista de navegación aparte y el usuario puede volver a la página original. |
+| 12 · Favoritos | **12.1** Añadir o quitar la página actual de favoritos. | El mando permite guardar o quitar una página y la lista de favoritos refleja el cambio. |
+| 12 · Favoritos | **12.2** Volver a abrir páginas desde la lista de favoritos. | Los favoritos se conservan al volver a abrir la app y se pueden abrir con el mando. |
+| 13 · Historial | **13.1** Registrar las páginas visitadas en el dispositivo y ordenarlas por visita más reciente. | El usuario puede volver a abrir una página reciente desde el historial. |
+| 13 · Historial | **13.2** Borrar entradas individuales o todo el historial. | Las páginas borradas siguen fuera de la lista al volver a abrir la app. |
+| 14 · Idiomas | **14.1** Traducir la interfaz a inglés, español, francés, portugués y alemán. | El navegador, las funciones nuevas y Ajustes muestran sus textos en los cinco idiomas. |
+| 14 · Idiomas | **14.2** Añadir un selector de idioma en Ajustes. | El usuario puede cambiar de idioma con el mando y la selección se conserva al volver a abrir la app. |
 
 ## Tecnologías
 

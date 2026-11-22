@@ -7,7 +7,7 @@ in the style of Brave's *Shields*, built to be used with the TV remote.
 
 > Download the latest version from
 > [GitHub Releases](https://github.com/merytech1/tvshields/releases/latest). See the
-> [roadmap](docs/roadmap.md) for what comes next.
+> [next release plan](#next-release) for upcoming work.
 
 ## What it does
 
@@ -40,6 +40,24 @@ From a USB drive with a file manager, install the APK you downloaded; or use
 `adb install <file>.apk`. The device must allow installing apps from that source, and the first
 launch needs internet to download the filter lists. Checksums, the certificate and more detail are
 in the [v0.1.1 release notes](docs/releases/v0.1.1.md).
+
+## Next release
+
+These phases continue the numbering from the [project roadmap](docs/roadmap.md).
+
+| Phase | Task | Done when |
+|---|---|---|
+| 10 · Downloads and updates on the TV | **10.1** Download files from web pages and show download progress. | A file downloaded with the remote appears in the download list and can be opened from the TV. |
+| 10 · Downloads and updates on the TV | **10.2** Add a manual update check in Settings using GitHub Releases. | Settings shows the installed version and offers the official signed APK when a newer version is available. |
+| 10 · Downloads and updates on the TV | **10.3** Download the update and open the Android installer. | The user confirms the update on the TV and tvshields opens with the new version and its previous settings. |
+| 11 · Tabs and windows | **11.1** Open, switch and close tabs with the remote. | Each tab keeps its page and navigation state while the user switches between tabs. |
+| 11 · Tabs and windows | **11.2** Handle links that request a new browser window. | A link opens in a separate browsing view and the user can return to the original page. |
+| 12 · Favorites | **12.1** Add or remove the current page as a favorite. | The remote can save or remove a page and the favorites list reflects the change. |
+| 12 · Favorites | **12.2** Reopen saved pages from the favorites list. | Favorites remain after reopening the app and can be opened with the remote. |
+| 13 · History | **13.1** Record visited pages on the device and display them in order of most recent visit. | The user can reopen a recent page from the history list. |
+| 13 · History | **13.2** Delete individual entries or clear the entire history. | Removed pages stay out of the list after reopening the app. |
+| 14 · Languages | **14.1** Translate the interface into English, Spanish, French, Portuguese and German. | The browser, its new features and Settings display text in all five languages. |
+| 14 · Languages | **14.2** Add a language selector in Settings. | The user can switch languages with the remote, and the chosen language persists after reopening the app. |
 
 ## Tech stack
 
